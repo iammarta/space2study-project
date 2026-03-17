@@ -9,3 +9,14 @@ By using **Nix flakes**, I've pinned the versions of Node.js and NPM, ensuring t
 - Backend: `cd app/backend`, then `nix develop` → `npm install` → `npm start`
 - Frontend: `cd app/frontend`, then `nix develop` → `npm install` → `npm start -- --no-open`
 - Open `http://localhost:3000` in a browser to see the working web interface.
+
+# Deploying a Containerized Web Application
+In this task, I containerized the Web Application using Docker and Docker Compose. The setup ensures environment consistency and "cloud-readiness" through isolated services for Frontend, Backend, and MongoDB.
+
+I used **multi-stage builds** with **Nginx** to optimize the frontend image and implemented a centralized **.env** system for easy configuration of ports and API endpoints.
+
+**To run the project:**
+- Build and start all services: `docker-compose up --build -d`
+- Frontend: Accessible at `http://localhost:3000`
+- Backend API: Accessible at `http://localhost:5001`
+- Database: MongoDB running on `localhost:27017`.

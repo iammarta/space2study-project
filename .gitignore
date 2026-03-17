@@ -1,2 +1,6 @@
 # Vagrant
 .vagrant/
+
+**/.env
+
+.DS_Store
