@@ -13,8 +13,8 @@ services:
   backend:
     build: ./backend
 # Commented out for scaling tests
-#    ports: # commente
-#      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    ports: # commente
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
       - ./backend/.env
     environment:
