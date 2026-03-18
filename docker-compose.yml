@@ -6,7 +6,7 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db # Persist database data even if container is removed
-
+    
   backend:
     build: ./backend
     container_name: space2study-backend
@@ -29,7 +29,47 @@ services:
       - "${FRONTEND_PORT}:80" # Map host port 3000 to Nginx container port 80
     depends_on:
       - backend
+
+  # --- Monitoring & Logging ---
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: cadvisor
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"    # Metrics collector for container resource usage
+
+  prometheus:
+    image: prom/prometheus:v3.0.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # Configuration file
+    ports:
+      - "9090:9090" # Time-series database for infrastructure metrics
+    depends_on:
+      - cadvisor
+
+  grafana:
+    image: grafana/grafana:11.0.11
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT}:3000" # Visualization dashboard for metrics and logs
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    depends_on:
+      - prometheus
   
+  # --- Artifact Management ---
+
   nexus:
     image: sonatype/nexus3
     container_name: nexus
@@ -42,3 +82,4 @@ services:
 volumes:
   mongo-data: # Define named volume for data persistence
   nexus-data: # Persist Nexus artifacts (images, logs, settings)
+  grafana-storage:
