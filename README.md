@@ -38,3 +38,11 @@ In this task, I implemented a comprehensive monitoring stack using **Prometheus*
 - **CPU Usage:** Real-time processor load per service (Backend, Frontend, MongoDB, Nexus).
 - **Memory Usage:** Precise RAM consumption to prevent OOM (Out of Memory) issues.
 - **Memory Cached:** Monitoring system-level data caching for database and file performance.
+
+# Configure Logging Mechanisms
+In this task, I implemented a centralized logging system using **Grafana Loki** and **Promtail**. This setup allows for real-time aggregation and analysis of logs from all containerized services
+
+**Key Logging Features:**
+- **Service Labeling:** Logs are tagged with `service_name` for instant filtering in Grafana.
+- **Log Levels:** Automatic identification of `info`, `warn`, and `error` levels with color-coded visualization.
+- **Error Tracking:** Real-time monitoring of database connection statuses and application runtime warnings.
