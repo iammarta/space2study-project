@@ -46,3 +46,13 @@ In this task, I implemented a centralized logging system using **Grafana Loki** 
 - **Service Labeling:** Logs are tagged with `service_name` for instant filtering in Grafana.
 - **Log Levels:** Automatic identification of `info`, `warn`, and `error` levels with color-coded visualization.
 - **Error Tracking:** Real-time monitoring of database connection statuses and application runtime warnings.
+
+# Monitor Resource Usage and Plan for Scalability
+In this task, I implemented resource management by adding **deploy limits** directly into the `docker-compose.yml` for all key services. This ensures that the infrastructure remains stable and prevents OOM (Out of Memory) issues.
+
+I removed hardcoded `container_name` attributes to enable **horizontal scaling**, allowing the Docker engine to manage unique identifiers for service replicas without naming collisions.
+
+**Key Technical Implementations:**
+- **Memory Limits:** Defined strict constraints (e.g., **3GB for Nexus, 512MB for Backend & MongoDB**) to ensure predictable host performance.
+- **Dynamic Naming:** Enabled scaling by removing static names, verified with `docker-compose up -d --scale backend=3 --scale frontend=2`.
+- **Resource Monitoring:** Used `docker stats` to verify that memory limits are correctly enforced for each service replica.

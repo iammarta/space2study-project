@@ -1,17 +1,20 @@
 services:
   mongodb:
     image: mongo:6.0
-    container_name: mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db # Persist database data even if container is removed
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     
   backend:
     build: ./backend
-    container_name: space2study-backend
-    ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+# Commented out for scaling tests
+#    ports: # commente
+#      - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
       - ./backend/.env
     environment:
@@ -21,13 +24,16 @@ services:
     labels:
       logging: "true"
       service: "backend"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   frontend:
     build: 
       context: ./frontend
       args:
         - VITE_API_BASE_PATH=${API_URL} # Pass API URL to frontend build
-    container_name: space2study-frontend
     ports:
       - "${FRONTEND_PORT}:80" # Map host port 3000 to Nginx container port 80
     depends_on:
@@ -40,7 +46,6 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
-    container_name: cadvisor
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -52,7 +57,6 @@ services:
 
   prometheus:
     image: prom/prometheus:v3.0.0
-    container_name: prometheus
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
@@ -62,7 +66,6 @@ services:
 
   grafana:
     image: grafana/grafana:11.0.11
-    container_name: grafana
     ports:
       - "${GRAFANA_PORT}:3000"
     volumes:
@@ -76,7 +79,6 @@ services:
     
   loki:
     image: grafana/loki:3.0.0
-    container_name: loki
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -85,7 +87,6 @@ services:
 
   promtail:
     image: grafana/promtail:3.0.0
-    container_name: promtail
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro # To read container metadata
       - /var/lib/docker/containers:/var/lib/docker/containers:ro # To read logs
@@ -98,12 +99,15 @@ services:
 
   nexus:
     image: sonatype/nexus3
-    container_name: nexus
     ports:
       - "8081:8081" # UI port for Nexus administration
       - "8082:8082" # Port for Docker Hosted Repository (Artifact Management)
     volumes:
       - nexus-data:/nexus-data # Store hosted repositories and configuration
+    deploy:
+      resources:
+        limits:
+          memory: 3G
 
 volumes:
   mongo-data: # Define named volume for data persistence
