@@ -1,19 +1,24 @@
-FROM node:18-alpine
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 
-# Install system dependencies required for compiling native modules
-RUN apk add --no-cache make gcc g++ python3
-
-# Install only production dependencies and skip scripts to avoid build errors
-RUN npm ci --only=production --legacy-peer-deps --ignore-scripts
-
-# Rebuild bcrypt from source inside the container to ensure binary compatibility with Alpine Linux
-RUN npm rebuild bcrypt --build-from-source
+RUN apk add --no-cache make gcc g++ python3 && \
+    npm ci --legacy-peer-deps && \
+    npm rebuild bcrypt --build-from-source && \
+    apk del make gcc g++ python3 && \
+    npm cache clean --force
 
 COPY . .
+
+RUN npm prune --omit=dev
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY --from=builder /app ./
 
 # Set permissions for the node user for better security
 RUN chown -R node:node /app
