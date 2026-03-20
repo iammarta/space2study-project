@@ -44,8 +44,8 @@ services:
   backend:
     build: ./backend
     <<: [*default-restart, *deploy-medium]
-    ports: 
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+#    ports: 
+#      - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
       - ./backend/.env
     environment:
@@ -121,9 +121,10 @@ services:
     <<: [*default-restart, *deploy-small]
     ports:
       - "3100:3100"
-    command: 
-      - "-config.file=/etc/loki/local-config.yaml"
-      - "-limits.config.retention_period=7d"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - ./loki-data:/tmp/loki
+    command: -config.file=/etc/loki/local-config.yaml
     logging: *default-logging
 
   promtail:
