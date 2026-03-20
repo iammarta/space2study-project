@@ -1,6 +1,8 @@
-# Vagrant
+
 .vagrant/
 
 **/.env
 
 .DS_Store
+
+loki-data/

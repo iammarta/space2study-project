@@ -31,6 +31,13 @@ x-deploy-micro: &deploy-micro
         cpus: '0.1'
         memory: 100M
 
+x-deploy-tiny: &deploy-tiny
+  deploy:
+    resources:
+      limits:
+        cpus: '0.1'
+        memory: 64M
+
 services:
   mongodb:
     image: mongo:6.0
@@ -44,8 +51,8 @@ services:
   backend:
     build: ./backend
     <<: [*default-restart, *deploy-medium]
-#    ports: 
-#      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    ports: 
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     env_file:
       - ./backend/.env
     environment:
@@ -59,17 +66,12 @@ services:
       context: ./frontend
       args:
         - VITE_API_BASE_PATH=${API_URL} # Pass API URL to frontend build
-    <<: *default-restart
+    <<: [*default-restart, *deploy-tiny]
     ports:
       - "${FRONTEND_PORT}:80" # Map host port 3000 to Nginx container port 80
     depends_on:
       - backend
     logging: *default-logging
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 64M
 
   # --- Monitoring & Logging ---
 
@@ -159,6 +161,6 @@ services:
           memory: 2.2G
 
 volumes:
-  mongo-data: # Define named volume for data persistence
-  nexus-data: # Persist Nexus artifacts (images, logs, settings)
-  grafana-storage: # Save Grafana dashboards, data sources, and user settings
+  mongo-data:
+  nexus-data:
+  grafana-storage:
