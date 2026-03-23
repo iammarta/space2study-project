@@ -1,8 +1,6 @@
-
-.vagrant/
-
-**/.env
-
 .DS_Store
-
+.env
+.env.*
+.vagrant/
+node_modules/
 loki-data/
