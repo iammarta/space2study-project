@@ -29,6 +29,16 @@ services:
       - "${FRONTEND_PORT}:80" # Map host port 3000 to Nginx container port 80
     depends_on:
       - backend
+  
+  nexus:
+    image: sonatype/nexus3
+    container_name: nexus
+    ports:
+      - "8081:8081" # UI port for Nexus administration
+      - "8082:8082" # Port for Docker Hosted Repository (Artifact Management)
+    volumes:
+      - nexus-data:/nexus-data # Store hosted repositories and configuration
 
 volumes:
   mongo-data: # Define named volume for data persistence
+  nexus-data: # Persist Nexus artifacts (images, logs, settings)
