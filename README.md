@@ -30,3 +30,11 @@ I configured a **Docker Hosted Repository**, enabling secure authentication and 
 - Nexus UI: `http://localhost:8081` (Use your administrator credentials)
 - Docker Registry: Accessible at `localhost:8082`
 - Artifacts: Versioned images are stored in the `space2study-registry` repository
+
+# Monitoring Infrastructure and Application Performance
+In this task, I implemented a comprehensive monitoring stack using **Prometheus**, **Grafana**, and **cAdvisor** to track the health of the infrastructure and the performance of containerized services.
+
+**Key Metrics Tracked:**
+- **CPU Usage:** Real-time processor load per service (Backend, Frontend, MongoDB, Nexus).
+- **Memory Usage:** Precise RAM consumption to prevent OOM (Out of Memory) issues.
+- **Memory Cached:** Monitoring system-level data caching for database and file performance.
