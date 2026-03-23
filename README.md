@@ -11,25 +11,10 @@ By using **Nix flakes**, I've pinned the versions of Node.js and NPM, ensuring t
 - Open `http://localhost:3000` in a browser to see the working web interface.
 
 # Deploying a Containerized Web Application
-In this task, I containerized the Web Application using **Docker** and **Docker Compose**. The setup ensures environment consistency and "cloud-readiness" through isolated services for Frontend, Backend, and MongoDB.
-
-I used **multi-stage builds** with **Nginx** to optimize the frontend image and implemented a centralized **.env** system for easy configuration of ports and API endpoints.
-
-**To run the project:**
-- Build and start all services: `docker-compose up --build -d`
-- Frontend: Accessible at `http://localhost:3000`
-- Backend API: Accessible at `http://localhost:5001`
-- Database: MongoDB running on `localhost:27017`
+In this task, I containerized a web application using **Docker** and **Docker Compose**. The setup ensures environment consistency and "cloud-readiness" through isolated services for Frontend and Backend. I also implemented **multi-stage builds** and followed best practices to optimize the application. To build and start all services: `docker-compose up --build -d`
 
 # Artifact Management
 In this task, I implemented a private **Docker Registry** using **Sonatype Nexus** to manage container images. This setup allows for centralized storage and versioning of the application's artifacts.
-
-I configured a **Docker Hosted Repository**, enabling secure authentication and image tagging to ensure a consistent deployment pipeline.
-
-**To access the Registry:**
-- Nexus UI: `http://localhost:8081` (Use your administrator credentials)
-- Docker Registry: Accessible at `localhost:8082`
-- Artifacts: Versioned images are stored in the `space2study-registry` repository
 
 # Monitoring Infrastructure and Application Performance
 In this task, I implemented a comprehensive monitoring stack using **Prometheus**, **Grafana**, and **cAdvisor** to track the health of the infrastructure and the performance of containerized services.
@@ -42,17 +27,27 @@ In this task, I implemented a comprehensive monitoring stack using **Prometheus*
 # Configure Logging Mechanisms
 In this task, I implemented a centralized logging system using **Grafana Loki** and **Promtail**. This setup allows for real-time aggregation and analysis of logs from all containerized services
 
-**Key Logging Features:**
-- **Service Labeling:** Logs are tagged with `service_name` for instant filtering in Grafana.
-- **Log Levels:** Automatic identification of `info`, `warn`, and `error` levels with color-coded visualization.
-- **Error Tracking:** Real-time monitoring of database connection statuses and application runtime warnings.
-
 # Monitor Resource Usage and Plan for Scalability
-In this task, I implemented resource management by adding **deploy limits** directly into the `docker-compose.yml` for all key services. This ensures that the infrastructure remains stable and prevents OOM (Out of Memory) issues.
+To control resource usage, I configured limits for all services in `docker-compose.yml`:
+- Used **YAML anchors** to define reusable templates for CPU and memory limits
+- Applied limits to all containers to prevent resource exhaustion
+- **Storage Control:** Configured Loki (168h) to automatically delete old data and save disk space.
 
-I removed hardcoded `container_name` attributes to enable **horizontal scaling**, allowing the Docker engine to manage unique identifiers for service replicas without naming collisions.
+**Verification:**
+- Used `docker stats` to confirm resource usage
+- Observed that services stay within defined limits
+- Verified horizontal scaling using:
+`docker-compose up --scale backend=3`
 
-**Key Technical Implementations:**
-- **Memory Limits:** Defined strict constraints (e.g., **3GB for Nexus, 512MB for Backend & MongoDB**) to ensure predictable host performance.
-- **Dynamic Naming:** Enabled scaling by removing static names, verified with `docker-compose up -d --scale backend=3 --scale frontend=2`.
-- **Resource Monitoring:** Used `docker stats` to verify that memory limits are correctly enforced for each service replica.
+**Scaling approach:**
+- **Backend / Frontend** - scalable horizontally (multiple replicas)
+- **Nexus** - requires more memory (vertical scaling)
+ 
+**Bottleneck Analysis**
+During testing:
+- Identified **Nexus** as the most resource-intensive service
+- It runs on Java and requires significantly more memory than other services
+
+**Solution:**
+- Assigned a higher memory limit (2.2GB) to Nexus due to its Java-based nature.
+- Additionally, configured JVM memory parameters via `INSTALL4J_ADD_VM_PARAMS` to further control its memory usage.
