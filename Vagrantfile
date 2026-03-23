@@ -8,8 +8,8 @@ Vagrant.configure("2") do |config|
   end
   
   # Network forwarding for Frontend (3000) and Backend (5001)
-  config.vm.network "forwarded_port", guest: 3000, host: 3000
-  config.vm.network "forwarded_port", guest: 5001, host: 5001
+  config.vm.network "forwarded_port", guest: 3000, host: 3000, auto_correct: true
+  config.vm.network "forwarded_port", guest: 5001, host: 5001, auto_correct: true
   
   # Resources allocation for UTM (Apple Silicon)
   config.vm.provider "utm" do |utm|
@@ -55,7 +55,7 @@ Vagrant.configure("2") do |config|
     echo "Checking MongoDB container..."
     if ! docker ps -a --format '{{.Names}}' | grep -q '^mongodb$'; then
       echo "Creating and starting MongoDB container..."
-      docker run -d --name mongodb -p 27017:27017 --restart always mongo:6.0
+      docker run -d --name mongodb -v mongo_db_data:/data/db -p 27017:27017 --restart always mongo:6.0
     else
       echo "Starting existing MongoDB container..."
       docker start mongodb
