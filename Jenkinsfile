@@ -36,7 +36,8 @@ pipeline {
                         dir('frontend') {
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-Client
+                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-Client \
+                                -Dsonar.testExecutionReportPaths=""
                             """
                         }
                     }
