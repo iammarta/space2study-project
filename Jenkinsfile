@@ -2,6 +2,7 @@ pipeline {
     agent any
     tools {
         nodejs 'node18'
+        dockerTool 'docker'
         'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarScanner'
     }
     stages {
@@ -28,7 +29,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh 'npm install --legacy-peer-deps --ignore-scripts'
-                    sh 'npm test -- --watchAll=false --coverage || true' 
+                    sh 'npm test -- --run --coverage || true'
                     withSonarQubeEnv('MySonarServer') {
                         sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend || true'
                     }
