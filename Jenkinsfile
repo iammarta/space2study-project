@@ -28,10 +28,21 @@ pipeline {
                     
                     withSonarQubeEnv('MySonarServer') {
                         dir('backend') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend"
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=SpaceToStudy-Backend \
+                                -Dsonar.testExecutionReportPaths="" \
+                                -Dsonar.javascript.lcov.reportPaths=""
+                            """
                         }
+                        
                         dir('frontend') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend"
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=SpaceToStudy-Frontend \
+                                -Dsonar.testExecutionReportPaths="" \
+                                -Dsonar.javascript.lcov.reportPaths=""
+                            """
                         }
                     }
                 }
