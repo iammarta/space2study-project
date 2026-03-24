@@ -25,19 +25,13 @@ pipeline {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
-                    def components = ['backend', 'frontend']
                     
                     withSonarQubeEnv('MySonarServer') {
-                        components.each { folder ->
-                            dir(folder) {
-                                sh """
-                                    ${scannerHome}/bin/sonar-scanner \
-                                    -Dsonar.projectKey=SpaceToStudy-${folder.capitalize()} \
-                                    -Dsonar.javascript.node.maxspace=2048 \
-                                    -Dsonar.testExecutionReportPaths="" \
-                                    -Dsonar.javascript.lcov.reportPaths=""
-                                """
-                            }
+                        dir('backend') {
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend"
+                        }
+                        dir('frontend') {
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend"
                         }
                     }
                 }
@@ -47,18 +41,14 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    echo "Checking Nexus credentials..."
                     withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                        sh "echo 'Logging into Nexus...'"
                         sh 'docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} -p ${NEXUS_PWD}'
                         
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
                             def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
                             dir(app) {
-                                echo "Building image for ${app}..."
                                 sh "docker build -t ${imageTag} ."
-                                echo "Pushing image ${imageTag} to Nexus..."
                                 sh "docker push ${imageTag}"
                             }
                         }
