@@ -15,7 +15,7 @@ pipeline {
         stage('2. Backend: Test & Scan') {
             steps {
                 dir('backend') {
-                    sh 'npm install'
+                    sh 'npm install --legacy-peer-deps --ignore-scripts'
                     sh "npx jest src/test/unit --coverage --coverageThreshold='{\"global\":{\"statements\":0,\"branches\":0,\"lines\":0,\"functions\":0}}'"
                     withSonarQubeEnv('MySonarServer') {
                         sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend'
