@@ -42,12 +42,15 @@ pipeline {
 
         stage('3. Build & Push') {
             steps {
+                script {
+                    echo "Checking Nexus credentials..."
                 withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                    script {
+                        sh "echo 'Logging into Nexus...'"
                         sh "echo ${NEXUS_PWD} | docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} --password-stdin"
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
                             def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            echo "Building image for ${app}..."
                             sh "docker build -t ${imageTag} ./${app}"
                             sh "docker push ${imageTag}"
                         }
