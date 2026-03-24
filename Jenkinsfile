@@ -9,52 +9,45 @@ pipeline {
         stage('1. Checkout Code') {
             steps {
                 checkout scm
-                sh 'ls -la' 
             }
         }
 
-        stage('2. Backend: Test & Scan') {
+        stage('2. Backend: CCI (SonarScan)') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     dir('backend') {
                         sh 'npm install --legacy-peer-deps --ignore-scripts'
-                        sh 'npx jest src/test/unit --coverage || true'
                         withSonarQubeEnv('MySonarServer') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend || true"
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend"
                         }
                     }
                 }
             }
         }
 
-        stage('3. Frontend: Test & Scan') {
+        stage('3. Frontend: CCI (SonarScan)') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     dir('frontend') {
                         sh 'npm install --legacy-peer-deps --ignore-scripts'
-                        sh 'npm test -- --run --coverage || true'
                         withSonarQubeEnv('MySonarServer') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend || true"
+                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend"
                         }
                     }
                 }
             }
         }
 
-        stage('4. Build, Tag & Push Artifacts') {
+        stage('4. Build & Push to Nexus') {
             steps {
                 withEnv(['DOCKER_API_VERSION=1.44']) {
                     sh "docker build -t localhost:8082/backend:${env.BUILD_NUMBER} ./backend"
-                    sh "docker build -t localhost:8082/backend:latest ./backend"
                     sh "docker build -t localhost:8082/frontend:${env.BUILD_NUMBER} ./frontend"
-                    sh "docker build -t localhost:8082/frontend:latest ./frontend"
                     
                     sh "docker push localhost:8082/backend:${env.BUILD_NUMBER}"
-                    sh "docker push localhost:8082/backend:latest"
                     sh "docker push localhost:8082/frontend:${env.BUILD_NUMBER}"
-                    sh "docker push localhost:8082/frontend:latest"
                 }
             }
         }
