@@ -30,9 +30,13 @@ pipeline {
                     withSonarQubeEnv('MySonarServer') {
                         components.each { folder ->
                             dir(folder) {
-                                sh "${scannerHome}/bin/sonar-scanner \
+                                sh """
+                                    ${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.projectKey=SpaceToStudy-${folder.capitalize()} \
-                                    -Dsonar.javascript.node.maxspace=2048 || true"
+                                    -Dsonar.javascript.node.maxspace=2048 \
+                                    -Dsonar.testExecutionReportPaths="" \
+                                    -Dsonar.javascript.lcov.reportPaths=""
+                                """
                             }
                         }
                     }
