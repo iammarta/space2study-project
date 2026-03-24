@@ -39,10 +39,12 @@ pipeline {
 
         stage('4. Build & Tag Artifacts') {
             steps {
-                sh "docker build -t localhost:8082/backend:${env.BUILD_NUMBER} ./backend"
-                sh "docker build -t localhost:8082/backend:latest ./backend"
-                sh "docker build -t localhost:8082/frontend:${env.BUILD_NUMBER} ./frontend"
-                sh "docker build -t localhost:8082/frontend:latest ./frontend"
+                withEnv(['DOCKER_API_VERSION=1.44']) {
+                    sh "docker build -t localhost:8082/backend:${env.BUILD_NUMBER} ./backend"
+                    sh "docker build -t localhost:8082/backend:latest ./backend"
+                    sh "docker build -t localhost:8082/frontend:${env.BUILD_NUMBER} ./frontend"
+                    sh "docker build -t localhost:8082/frontend:latest ./frontend"
+                }
             }
         }
     }
