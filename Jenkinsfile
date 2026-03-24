@@ -6,7 +6,7 @@ pipeline {
         'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarScanner'
     }
     environment {
-        NEXUS_REGISTRY = "project-nexus-1:8082"
+        NEXUS_REGISTRY = "host.docker.internal:8082"
         DOCKER_API_VERSION = "1.44"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
