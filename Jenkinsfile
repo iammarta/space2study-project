@@ -46,7 +46,7 @@ pipeline {
                     echo "Checking Nexus credentials..."
                 withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
                         sh "echo 'Logging into Nexus...'"
-                        sh "echo ${NEXUS_PWD} | docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} --password-stdin"
+                        sh "docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} -p ${NEXUS_PWD}"
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
                             def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
