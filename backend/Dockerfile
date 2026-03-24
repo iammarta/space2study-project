@@ -4,11 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN apk add --no-cache make gcc g++ python3 && \
-    npm ci --legacy-peer-deps && \
-    npm rebuild bcrypt --build-from-source && \
-    apk del make gcc g++ python3 && \
-    npm cache clean --force
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
