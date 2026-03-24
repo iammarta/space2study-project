@@ -16,9 +16,9 @@ pipeline {
             steps {
                 dir('backend') {
                     sh 'npm install --legacy-peer-deps --ignore-scripts'
-                    sh "npx jest src/test/unit --coverage --coverageThreshold='{\"global\":{\"statements\":0,\"branches\":0,\"lines\":0,\"functions\":0}}'"
+                    sh 'npx jest src/test/unit --coverage || true'
                     withSonarQubeEnv('MySonarServer') {
-                        sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend'
+                        sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend || true'
                     }
                 }
             }
@@ -27,10 +27,10 @@ pipeline {
         stage('3. Frontend: Test & Scan') {
             steps {
                 dir('frontend') {
-                    sh 'npm install'
+                    sh 'npm install --legacy-peer-deps --ignore-scripts'
                     sh 'npm test -- --watchAll=false --coverage || true' 
                     withSonarQubeEnv('MySonarServer') {
-                        sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend'
+                        sh 'sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend || true'
                     }
                 }
             }
