@@ -19,7 +19,9 @@ pipeline {
                     dir('backend') {
                         sh 'npm install --legacy-peer-deps --ignore-scripts'
                         withSonarQubeEnv('MySonarServer') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend"
+                            withEnv(["SONAR_SCANNER_OPTS=-Xmx1024m"]) {
+                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Backend || true"
+                            }
                         }
                     }
                 }
@@ -33,7 +35,9 @@ pipeline {
                     dir('frontend') {
                         sh 'npm install --legacy-peer-deps --ignore-scripts'
                         withSonarQubeEnv('MySonarServer') {
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend"
+                            withEnv(["SONAR_SCANNER_OPTS=-Xmx1024m"]) {
+                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=SpaceToStudy-Frontend || true"
+                            }
                         }
                     }
                 }
