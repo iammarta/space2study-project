@@ -44,15 +44,19 @@ pipeline {
             steps {
                 script {
                     echo "Checking Nexus credentials..."
-                withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
+                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
                         sh "echo 'Logging into Nexus...'"
-                        sh "docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} -p ${NEXUS_PWD}"
+                        sh 'docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} -p ${NEXUS_PWD}'
+                        
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
                             def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                            echo "Building image for ${app}..."
-                            sh "docker build -t ${imageTag} ./${app}"
-                            sh "docker push ${imageTag}"
+                            dir(app) {
+                                echo "Building image for ${app}..."
+                                sh "docker build -t ${imageTag} ."
+                                echo "Pushing image ${imageTag} to Nexus..."
+                                sh "docker push ${imageTag}"
+                            }
                         }
                     }
                 }
@@ -62,7 +66,7 @@ pipeline {
     post {
         always {
             cleanWs()
-            sh "docker logout ${NEXUS_REGISTRY} || true"
+            sh 'docker logout ${NEXUS_REGISTRY} || true'
         }
     }
 }
