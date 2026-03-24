@@ -2,8 +2,6 @@ pipeline {
     agent any
     tools {
         nodejs 'node18'
-        dockerTool 'docker'
-        'hudson.plugins.sonar.SonarRunnerInstallation' 'SonarScanner'
     }
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
@@ -30,18 +28,15 @@ pipeline {
                         dir('backend') {
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=SpaceToStudy-Backend \
-                                -Dsonar.testExecutionReportPaths="" \
-                                -Dsonar.javascript.lcov.reportPaths=""
+                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-BackEnd \
+                                -Dsonar.testExecutionReportPaths=""
                             """
                         }
-                        
+
                         dir('frontend') {
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=SpaceToStudy-Frontend \
-                                -Dsonar.testExecutionReportPaths="" \
-                                -Dsonar.javascript.lcov.reportPaths=""
+                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-Client
                             """
                         }
                     }
@@ -53,7 +48,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                        sh 'docker login ${NEXUS_REGISTRY} -u ${NEXUS_USR} -p ${NEXUS_PWD}'
+                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
                         
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
