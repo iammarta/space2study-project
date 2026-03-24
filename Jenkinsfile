@@ -8,7 +8,7 @@ pipeline {
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
         DOCKER_API_VERSION = "1.44"
-        SONAR_SCANNER_OPTS = "-Xmx1024m -XX:ReservedCodeCacheSize=128m"
+        SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
     stages {
         stage('1. Preparation') {
@@ -32,7 +32,7 @@ pipeline {
                             dir(folder) {
                                 sh "${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.projectKey=SpaceToStudy-${folder.capitalize()} \
-                                    -Dsonar.javascript.node.maxspace=1024 || true"
+                                    -Dsonar.javascript.node.maxspace=2048 || true"
                             }
                         }
                     }
