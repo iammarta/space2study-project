@@ -68,7 +68,7 @@ pipeline {
     post {
         always {
             cleanWs()
-            sh 'docker logout ${NEXUS_REGISTRY} || true'
+            // sh 'docker logout ${NEXUS_REGISTRY} || true'
         }
     }
 }
