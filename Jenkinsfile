@@ -2,7 +2,6 @@ pipeline {
     agent any
     tools {
         nodejs 'node18'
-        dockerTool 'docker'
     }
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
@@ -24,7 +23,7 @@ pipeline {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
-                    
+
                     withSonarQubeEnv('MySonarServer') {
                         dir('backend') {
                             sh """
@@ -49,25 +48,25 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    def dockerHome = tool name: 'docker', type: 'dockerTool'
-                    echo "DEBUG: Docker Home is ${dockerHome}"
-                    withEnv(["PATH+DOCKER=${dockerHome}/bin"]) {
-                       
-                        sh "echo 'DEBUG: Current PATH is \$PATH'"
-                        sh "which docker || echo 'DEBUG: docker not found in PATH'"
-                        sh "ls -l ${dockerHome}/bin/docker || echo 'DEBUG: docker binary not found at path'"
+                    sh 'echo "Current PATH: $PATH"'
+                    sh 'which docker'
+                    sh 'docker version'
 
-                        withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                           
-                            sh "echo '${NEXUS_PWD}' | docker login ${NEXUS_REGISTRY} -u '${NEXUS_USR}' --password-stdin"
-                            
-                            def apps = ['backend', 'frontend']
-                            apps.each { app ->
-                                def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                                dir(app) {
-                                    sh "docker build -t ${imageTag} ."
-                                    sh "docker push ${imageTag}"
-                                }
+                    withCredentials([usernamePassword(
+                        credentialsId: 'nexus-auth',
+                        passwordVariable: 'NEXUS_PWD',
+                        usernameVariable: 'NEXUS_USR'
+                    )]) {
+                        sh '''
+                            echo "$NEXUS_PWD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USR" --password-stdin
+                        '''
+
+                        def apps = ['backend', 'frontend']
+                        apps.each { app ->
+                            def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            dir(app) {
+                                sh "docker build -t ${imageTag} ."
+                                sh "docker push ${imageTag}"
                             }
                         }
                     }
@@ -78,7 +77,6 @@ pipeline {
     post {
         always {
             cleanWs()
-            // sh 'docker logout ${NEXUS_REGISTRY} || true'
         }
     }
 }
