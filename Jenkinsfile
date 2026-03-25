@@ -2,6 +2,7 @@ pipeline {
     agent any
     tools {
         nodejs 'node18'
+        docker 'docker'
     }
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
@@ -49,7 +50,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
+                        sh "echo '${NEXUS_PWD}' | docker login ${NEXUS_REGISTRY} -u '${NEXUS_USR}' --password-stdin"
                         
                         def apps = ['backend', 'frontend']
                         apps.each { app ->
