@@ -49,23 +49,31 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    def dockerBin = tool name: 'docker', type: 'dockerTool'
-                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
-                        sh "${dockerBin}/bin/docker login ${NEXUS_REGISTRY} -u '${NEXUS_USR}' --password-stdin <<EOF\n${NEXUS_PWD}\nEOF"
-                        
-                        def apps = ['backend', 'frontend']
-                        apps.each { app ->
-                            def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                            dir(app) {
-                                sh "${dockerBin}/bin/docker build -t ${imageTag} ."
-                                sh "${dockerBin}/bin/docker push ${imageTag}"
+                    def dockerHome = tool name: 'docker', type: 'dockerTool'
+                    echo "DEBUG: Docker Home is ${dockerHome}"
+                    withEnv(["PATH+DOCKER=${dockerHome}/bin"]) {
+                       
+                        sh "echo 'DEBUG: Current PATH is \$PATH'"
+                        sh "which docker || echo 'DEBUG: docker not found in PATH'"
+                        sh "ls -l ${dockerHome}/bin/docker || echo 'DEBUG: docker binary not found at path'"
+
+                        withCredentials([usernamePassword(credentialsId: 'nexus-auth', passwordVariable: 'NEXUS_PWD', usernameVariable: 'NEXUS_USR')]) {
+                           
+                            sh "echo '${NEXUS_PWD}' | docker login ${NEXUS_REGISTRY} -u '${NEXUS_USR}' --password-stdin"
+                            
+                            def apps = ['backend', 'frontend']
+                            apps.each { app ->
+                                def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                                dir(app) {
+                                    sh "docker build -t ${imageTag} ."
+                                    sh "docker push ${imageTag}"
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
     post {
         always {
             cleanWs()
