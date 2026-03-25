@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NEXUS_REGISTRY = "nexus:8082"
+        NEXUS_REGISTRY = "host.docker.internal:8082"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
 
@@ -41,8 +41,8 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'USR', passwordVariable: 'PWD')]) {
-                        sh "echo '${PWD}' | docker login ${NEXUS_REGISTRY} -u '${USR}' --password-stdin"
+                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
+                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
 
                         ['backend', 'frontend'].each { app ->
                             def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
