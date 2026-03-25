@@ -7,20 +7,17 @@ pipeline {
 
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
-        DOCKER_API_VERSION = "1.44"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
 
     stages {
         stage('1. Preparation') {
             steps {
-                checkout scm
                 script {
-                    dir('backend') {
-                        sh 'npm install --legacy-peer-deps --ignore-scripts'
-                    }
-                    dir('frontend') {
-                        sh 'npm install --legacy-peer-deps --ignore-scripts'
+                    ['backend', 'frontend'].each { dirName ->
+                        dir(dirName) {
+                            sh 'npm install --legacy-peer-deps --ignore-scripts'
+                        }
                     }
                 }
             }
@@ -30,22 +27,11 @@ pipeline {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
-
                     withSonarQubeEnv('MySonarServer') {
-                        dir('backend') {
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-BackEnd \
-                                -Dsonar.testExecutionReportPaths=""
-                            """
-                        }
-
-                        dir('frontend') {
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=ita-social-projects_SpaceToStudy-Client \
-                                -Dsonar.testExecutionReportPaths=""
-                            """
+                        ['backend': 'BackEnd', 'frontend': 'Client'].each { folder, suffix ->
+                            dir(folder) {
+                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=ita-social-projects_SpaceToStudy-${suffix} -Dsonar.testExecutionReportPaths=''"
+                            }
                         }
                     }
                 }
@@ -55,30 +41,17 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    sh 'which docker'
-                    sh 'docker version'
+                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'USR', passwordVariable: 'PWD')]) {
+                        sh "echo '${PWD}' | docker login ${NEXUS_REGISTRY} -u '${USR}' --password-stdin"
 
-                    withCredentials([usernamePassword(
-                        credentialsId: 'nexus-auth',
-                        usernameVariable: 'NEXUS_USR',
-                        passwordVariable: 'NEXUS_PWD'
-                    )]) {
-                        sh '''
-                            echo "$NEXUS_PWD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USR" --password-stdin
-                        '''
-
-                        def apps = ['backend', 'frontend']
-
-                        apps.each { app ->
-                            def buildTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                            def latestTag = "${NEXUS_REGISTRY}/${app}:latest"
-
+                        ['backend', 'frontend'].each { app ->
+                            def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            def latest = "${NEXUS_REGISTRY}/${app}:latest"
+                            
                             dir(app) {
-                                sh """
-                                    docker build -t ${buildTag} -t ${latestTag} .
-                                    docker push ${buildTag}
-                                    docker push ${latestTag}
-                                """
+                                sh "docker build -t ${tag} -t ${latest} ."
+                                sh "docker push ${tag}"
+                                sh "docker push ${latest}"
                             }
                         }
                     }
@@ -89,7 +62,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker logout "$NEXUS_REGISTRY" || true'
+            sh "docker logout ${NEXUS_REGISTRY} || true"
             cleanWs()
         }
     }
