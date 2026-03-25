@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        NEXUS_REGISTRY = "host.docker.internal:8082"
+        NEXUS_REGISTRY = "nexus:8082"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
 
