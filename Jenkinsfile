@@ -1,20 +1,27 @@
 pipeline {
     agent any
+
     tools {
         nodejs 'node18'
     }
+
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
         DOCKER_API_VERSION = "1.44"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
+
     stages {
         stage('1. Preparation') {
             steps {
                 checkout scm
                 script {
-                    dir('backend') { sh 'npm install --legacy-peer-deps --ignore-scripts' }
-                    dir('frontend') { sh 'npm install --legacy-peer-deps --ignore-scripts' }
+                    dir('backend') {
+                        sh 'npm install --legacy-peer-deps --ignore-scripts'
+                    }
+                    dir('frontend') {
+                        sh 'npm install --legacy-peer-deps --ignore-scripts'
+                    }
                 }
             }
         }
@@ -48,25 +55,30 @@ pipeline {
         stage('3. Build & Push') {
             steps {
                 script {
-                    sh 'echo "Current PATH: $PATH"'
                     sh 'which docker'
                     sh 'docker version'
 
                     withCredentials([usernamePassword(
                         credentialsId: 'nexus-auth',
-                        passwordVariable: 'NEXUS_PWD',
-                        usernameVariable: 'NEXUS_USR'
+                        usernameVariable: 'NEXUS_USR',
+                        passwordVariable: 'NEXUS_PWD'
                     )]) {
                         sh '''
                             echo "$NEXUS_PWD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USR" --password-stdin
                         '''
 
                         def apps = ['backend', 'frontend']
+
                         apps.each { app ->
-                            def imageTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            def buildTag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            def latestTag = "${NEXUS_REGISTRY}/${app}:latest"
+
                             dir(app) {
-                                sh "docker build -t ${imageTag} ."
-                                sh "docker push ${imageTag}"
+                                sh """
+                                    docker build -t ${buildTag} -t ${latestTag} .
+                                    docker push ${buildTag}
+                                    docker push ${latestTag}
+                                """
                             }
                         }
                     }
@@ -74,8 +86,10 @@ pipeline {
             }
         }
     }
+
     post {
         always {
+            sh 'docker logout "$NEXUS_REGISTRY" || true'
             cleanWs()
         }
     }
