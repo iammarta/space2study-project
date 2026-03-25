@@ -201,7 +201,9 @@ services:
     logging: *default-logging
 
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
     <<: [*default-restart, *deploy-large]
     ports:
       - "8085:8080"
