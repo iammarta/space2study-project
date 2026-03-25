@@ -2,7 +2,7 @@ pipeline {
     agent any
     tools {
         nodejs 'node18'
-        docker 'docker'
+        dockerTool 'docker'
     }
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
