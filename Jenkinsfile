@@ -11,26 +11,6 @@ pipeline {
     }
 
     stages {
-        stage('Check Agent') {
-            steps {
-                sh 'echo "Running on:"'
-                sh 'hostname'
-                sh 'whoami'
-                sh 'docker version'
-            }
-        }
-        
-        stage('Preparation') {
-            steps {
-                script {
-                    ['backend', 'frontend'].each { dirName ->
-                        dir(dirName) {
-                            sh 'npm install --legacy-peer-deps --ignore-scripts'
-                        }
-                    }
-                }
-            }
-        }
 
         stage('SonarQube Analysis') {
             steps {
