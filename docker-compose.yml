@@ -206,6 +206,7 @@ services:
     ports:
       - "8085:8080"
       - "50000:50000"
+    user: root
     volumes:
       - jenkins-data:/var/jenkins_home
     logging: *default-logging
