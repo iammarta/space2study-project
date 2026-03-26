@@ -11,7 +11,7 @@ pipeline {
     }
 
     stages {
-        stage('1. Preparation') {
+        stage('Preparation') {
             steps {
                 script {
                     ['backend', 'frontend'].each { dirName ->
@@ -23,7 +23,7 @@ pipeline {
             }
         }
 
-        stage('2. SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
@@ -38,7 +38,7 @@ pipeline {
             }
         }
 
-        stage('3. Build & Push') {
+        stage('Build & Push') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
