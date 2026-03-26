@@ -201,17 +201,33 @@ services:
     logging: *default-logging
 
   jenkins:
-    build:
-      context: .
-      dockerfile: Dockerfile.jenkins
+    image: jenkins/jenkins:lts
     <<: [*default-restart, *deploy-large]
     ports:
       - "8085:8080"
       - "50000:50000"
-    user: root
     volumes:
       - jenkins-data:/var/jenkins_home
+    logging: *default-logging
+
+  jenkins-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    <<: [*default-restart, *deploy-large]
+    user: root
+    environment:
+      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
+      - JENKINS_SECRET=${JENKINS_SECRET}
+      - JENKINS_WEB_SOCKET=${JENKINS_WEB_SOCKET}
+      - NO_PROXY=localhost,127.0.0.1,host.docker.internal,jenkins
+      - no_proxy=localhost,127.0.0.1,host.docker.internal,jenkins
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins-agent-npm-cache:/home/jenkins/.npm
+    depends_on:
+      - jenkins
     logging: *default-logging
 
   nginx-lb:
@@ -236,3 +252,4 @@ volumes:
   sonarqube_extensions:
   sonarqube_logs:
   jenkins-data:
+  jenkins-agent-npm-cache:
