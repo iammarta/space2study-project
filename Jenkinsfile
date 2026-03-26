@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'docker-agent' }
 
     tools {
         nodejs 'node18'
@@ -11,6 +11,15 @@ pipeline {
     }
 
     stages {
+        stage('Check Agent') {
+            steps {
+                sh 'echo "Running on:"'
+                sh 'hostname'
+                sh 'whoami'
+                sh 'docker version'
+            }
+        }
+        
         stage('Preparation') {
             steps {
                 script {
