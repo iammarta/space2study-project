@@ -1,6 +1,10 @@
 pipeline {
     agent { label 'docker-agent' }
 
+    tools {
+        nodejs 'node18'
+    }
+
     environment {
         NEXUS_REGISTRY = "host.docker.internal:8082"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
