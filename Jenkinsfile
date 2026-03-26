@@ -39,7 +39,12 @@ pipeline {
                     withSonarQubeEnv('MySonarServer') {
                         ['backend': 'BackEnd', 'frontend': 'Client'].each { folder, suffix ->
                             dir(folder) {
-                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=ita-social-projects_SpaceToStudy-${suffix} -Dsonar.testExecutionReportPaths=''"
+                                sh """
+                                  ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.projectKey=ita-social-projects_SpaceToStudy-${suffix} \
+                                    -Dsonar.testExecutionReportPaths= \
+                                    -Dsonar.javascript.node.maxspace=4096
+                                """
                             }
                         }
                     }
