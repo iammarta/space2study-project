@@ -20,7 +20,7 @@ pipeline {
                                 sh """
                                   ${scannerHome}/bin/sonar-scanner \
                                     -Dsonar.testExecutionReportPaths= \
-                                    -Dsonar.javascript.node.maxspace=4096
+                                    -Dsonar.javascript.node.maxspace=768
                                 """
                             }
                         }

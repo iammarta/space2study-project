@@ -5,7 +5,7 @@ Vagrant.configure("2") do |config|
   nodes = {
     "app_node"     => { hostname: "app-node",     ssh: 2221, g_port: 80,   h_port: 8080, mem: 1536, cpu: 1 },
     "monitor_node" => { hostname: "monitor-node", ssh: 2222, g_port: 3000, h_port: 3001, mem: 1536, cpu: 1 },
-    "devops_node"  => { hostname: "devops-node",  ssh: 2223, g_port: 8080, h_port: 8085, mem: 4096, cpu: 2 }
+    "devops_node"  => { hostname: "devops-node",  ssh: 2223, g_port: 8080, h_port: 6144, mem: 8192, cpu: 2 }
   }
 
   nodes.each do |name, conf|

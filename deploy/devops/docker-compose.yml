@@ -21,6 +21,13 @@ x-deploy-large: &deploy-large
         cpus: '1.0'
         memory: 2G
 
+x-deploy-medium: &deploy-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 1G
+
 x-deploy-small: &deploy-small
   deploy:
     resources:
@@ -63,6 +70,8 @@ services:
       - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME}
       - SONAR_JDBC_USERNAME=${SONAR_DB_USER}
       - SONAR_JDBC_PASSWORD=${SONAR_DB_PASSWORD}
+      - SONAR_WEB_JAVAOPTS=-Xmx512m -Xms256m
+      - SONAR_CE_JAVAOPTS=-Xmx512m -Xms256m
     volumes:
       - sonarqube_data:/opt/sonarqube/data
     logging: *default-logging
@@ -82,7 +91,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.agent
-    <<: [*default-restart, *deploy-small]
+    <<: [*default-restart, *deploy-medium]
     environment:
       - JENKINS_URL=${JENKINS_URL}
       - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
