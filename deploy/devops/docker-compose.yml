@@ -91,6 +91,7 @@ services:
     user: root
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins-agent-workdir:/home/jenkins/agent
     depends_on:
       - jenkins
     logging: *default-logging
@@ -124,3 +125,4 @@ volumes:
   postgres_data:
   sonarqube_data:
   jenkins-data:
+  jenkins-agent-workdir:
