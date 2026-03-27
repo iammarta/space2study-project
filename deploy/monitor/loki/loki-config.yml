@@ -1,15 +1,16 @@
 auth_enabled: false
 
 server:
+  http_listen_address: 0.0.0.0
   http_listen_port: 3100
 
 common:
-  path_prefix: /tmp/loki
+  path_prefix: /loki
   replication_factor: 1
   storage:
     filesystem:
-      chunks_directory: /tmp/loki/chunks
-      rules_directory: /tmp/loki/rules
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   ring:
     kvstore:
       store: inmemory
@@ -29,5 +30,5 @@ limits_config:
 
 compactor:
   retention_enabled: true
-  working_directory: /tmp/loki/retention
+  working_directory: /loki/retention
   delete_request_store: filesystem
