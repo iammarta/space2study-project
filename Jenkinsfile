@@ -1,9 +1,7 @@
 pipeline {
     agent { label 'docker-agent' }
 
-    tools {
-        nodejs 'node18'
-    }
+    tools { nodejs 'node18' }
 
     environment {
         NEXUS_REGISTRY = "${env.NEXUS_REGISTRY}"
@@ -11,84 +9,43 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
 
-        stage('SonarQube Analysis - Backend') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('MySonarServer') {
-                        dir('backend') {
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                  -Dsonar.javascript.node.maxspace=4096
-                            """
+                        ['backend', 'frontend'].each { folder ->
+                            dir(folder) {
+                                sh """
+                                  ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.testExecutionReportPaths= \
+                                    -Dsonar.javascript.node.maxspace=4096
+                                """
+                            }
                         }
                     }
                 }
             }
         }
 
-        stage('SonarQube Analysis - Frontend') {
+        stage('Build & Push') {
             steps {
                 script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('MySonarServer') {
-                        dir('frontend') {
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                  -Dsonar.javascript.node.maxspace=4096
-                            """
+                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
+                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
+
+                        ['backend', 'frontend'].each { app ->
+                            def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                            def latest = "${NEXUS_REGISTRY}/${app}:latest"
+                            
+                            dir(app) {
+                                sh "docker build -t ${tag} -t ${latest} ."
+                                sh "docker push ${tag}"
+                                sh "docker push ${latest}"
+                            }
                         }
                     }
-                }
-            }
-        }
-
-        stage('Docker Login') {
-            steps {
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'nexus-auth',
-                        usernameVariable: 'NEXUS_USR',
-                        passwordVariable: 'NEXUS_PWD'
-                    )
-                ]) {
-                    sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
-                }
-            }
-        }
-
-        stage('Docker Build & Push - Backend') {
-            steps {
-                dir('backend') {
-                    sh """
-                        docker build \
-                          -t ${NEXUS_REGISTRY}/backend:${BUILD_NUMBER} \
-                          -t ${NEXUS_REGISTRY}/backend:latest \
-                          .
-                    """
-                    sh "docker push ${NEXUS_REGISTRY}/backend:${BUILD_NUMBER}"
-                    sh "docker push ${NEXUS_REGISTRY}/backend:latest"
-                }
-            }
-        }
-
-        stage('Docker Build & Push - Frontend') {
-            steps {
-                dir('frontend') {
-                    sh """
-                        docker build \
-                          -t ${NEXUS_REGISTRY}/frontend:${BUILD_NUMBER} \
-                          -t ${NEXUS_REGISTRY}/frontend:latest \
-                          .
-                    """
-                    sh "docker push ${NEXUS_REGISTRY}/frontend:${BUILD_NUMBER}"
-                    sh "docker push ${NEXUS_REGISTRY}/frontend:latest"
                 }
             }
         }
