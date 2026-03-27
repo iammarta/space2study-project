@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+- job_name: 'prometheus'
+  static_configs:
+  - targets: [ 'localhost:9090' ]
+
+- job_name: 'monitor-node'
+  static_configs:
+  - targets: [ 'cadvisor:8080' ]
+    labels:
+      instance: 'monitor-node:8080'
+
+- job_name: 'app-node'
+  static_configs:
+  - targets: [ 'app-node:8080' ]
+
+- job_name: 'devops-node'
+  static_configs:
+  - targets: [ 'devops-node:8080' ]

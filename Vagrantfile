@@ -1,64 +1,43 @@
 Vagrant.configure("2") do |config|
-  
-  # Select box based on architecture (Apple Silicon vs Intel/AMD)
-  if RUBY_PLATFORM =~ /arm64|aarch64/
-    config.vm.box = "utm/bookworm" 
-  else
-    config.vm.box = "debian/bookworm64"
-  end
-  
-  # Network forwarding for Frontend (3000) and Backend (5001)
-  config.vm.network "forwarded_port", guest: 3000, host: 3000
-  config.vm.network "forwarded_port", guest: 5001, host: 5001
-  
-  # Resources allocation for UTM (Apple Silicon)
-  config.vm.provider "utm" do |utm|
-    utm.cpus = 2
-    utm.memory = 4096
-  end
-  
-  # Resources allocation for VirtualBox (Intel/AMD)
-  config.vm.provider "virtualbox" do |vb|
-    vb.cpus = 2
-    vb.memory = 4096
-  end
+  is_arm = RUBY_PLATFORM =~ /arm64|aarch64/
+  config.vm.box = is_arm ? "utm/bookworm" : "debian/bookworm64"
 
-  config.vm.provision "shell", inline: <<-SHELL
-    set -e
-    
-    # Install Docker and necessary system utilities
-    apt-get update -y
-    apt-get install -y docker.io git rsync curl
-    
-    # Setup Docker permissions for vagrant user
-    systemctl start docker
-    systemctl enable docker
-    usermod -aG docker vagrant
-    
-    # Install Nix Package Manager in multi-user mode
-    rm -f /etc/bash.bashrc.backup-before-nix
-    if ! command -v nix &> /dev/null; then
-      curl -L https://nixos.org/nix/install | sh -s -- --daemon --yes
-    fi
-    
-    # Enable Nix Flakes and experimental features
-    mkdir -p /home/vagrant/.config/nix
-    echo "experimental-features = nix-command flakes" > /home/vagrant/.config/nix/nix.conf
-    chown -R vagrant:vagrant /home/vagrant/.config
-    
-    # Sync project files to the VM
-    mkdir -p /home/vagrant/app
-    rsync -av --exclude='.git' --exclude='node_modules' /vagrant/ /home/vagrant/app/
-    chown -R vagrant:vagrant /home/vagrant/app
-    
-    # Automatically manage MongoDB container
-    echo "Checking MongoDB container..."
-    if ! docker ps -a --format '{{.Names}}' | grep -q '^mongodb$'; then
-      echo "Creating and starting MongoDB container..."
-      docker run -d --name mongodb -p 27017:27017 --restart always mongo:6.0
-    else
-      echo "Starting existing MongoDB container..."
-      docker start mongodb
-    fi
-  SHELL
+  nodes = {
+    "app_node"     => { hostname: "app-node",     ssh: 2221, g_port: 80,   h_port: 8080, mem: 1536, cpu: 1 },
+    "monitor_node" => { hostname: "monitor-node", ssh: 2222, g_port: 3000, h_port: 3001, mem: 1536, cpu: 1 },
+    "devops_node"  => { hostname: "devops-node",  ssh: 2223, g_port: 8080, h_port: 8085, mem: 4096, cpu: 2 }
+  }
+
+  nodes.each do |name, conf|
+    config.vm.define name do |node|
+      node.vm.hostname = conf[:hostname]
+
+      node.vm.network "forwarded_port", guest: 22, host: conf[:ssh], id: "ssh", auto_correct: true
+      node.vm.network "forwarded_port", guest: conf[:g_port], host: conf[:h_port], auto_correct: true
+
+      node.ssh.host = "127.0.0.1"
+      node.ssh.port = conf[:ssh]
+      node.ssh.username = "vagrant"
+      node.ssh.insert_key = false
+
+      node.vm.provider "utm" do |v|
+        v.memory = conf[:mem]
+        v.cpus = conf[:cpu]
+      end
+
+      node.vm.provision "shell", inline: <<-SHELL
+
+        if ! command -v docker >/dev/null 2>&1; then
+          apt-get update -y
+          apt-get install -y docker.io docker-compose curl rsync
+          usermod -aG docker vagrant
+          systemctl enable --now docker
+        fi
+
+        sed -i '/app-node\\|monitor-node\\|devops-node/d' /etc/hosts
+
+        echo "# Vagrant nodes" >> /etc/hosts
+      SHELL
+    end
+  end
 end
