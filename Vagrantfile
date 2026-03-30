@@ -5,7 +5,8 @@ Vagrant.configure("2") do |config|
   nodes = {
     "app_node"     => { hostname: "app-node",     ssh: 2221, g_port: 80,   h_port: 8080, mem: 1536, cpu: 1 },
     "monitor_node" => { hostname: "monitor-node", ssh: 2222, g_port: 3000, h_port: 3001, mem: 1536, cpu: 1 },
-    "devops_node"  => { hostname: "devops-node",  ssh: 2223, g_port: 8080, h_port: 6144, mem: 8192, cpu: 2 }
+    "cicd_node"  => { hostname: "cicd-node",  ssh: 2223, g_port: 8080, h_port: 6144, mem: 8192, cpu: 2 },
+    "runner_node"  => { hostname: "runner-node",  ssh: 2224, g_port: nil,  h_port: nil,  mem: 2048, cpu: 1 }
   }
 
   nodes.each do |name, conf|
@@ -13,7 +14,10 @@ Vagrant.configure("2") do |config|
       node.vm.hostname = conf[:hostname]
 
       node.vm.network "forwarded_port", guest: 22, host: conf[:ssh], id: "ssh", auto_correct: true
-      node.vm.network "forwarded_port", guest: conf[:g_port], host: conf[:h_port], auto_correct: true
+
+      if conf[:g_port] && conf[:h_port]
+        node.vm.network "forwarded_port", guest: conf[:g_port], host: conf[:h_port], auto_correct: true
+      end
 
       node.ssh.host = "127.0.0.1"
       node.ssh.port = conf[:ssh]
@@ -34,7 +38,7 @@ Vagrant.configure("2") do |config|
           systemctl enable --now docker
         fi
 
-        sed -i '/app-node\\|monitor-node\\|devops-node/d' /etc/hosts
+        sed -i '/app-node\\|monitor-node\\|cicd-node\\|runner-node/d' /etc/hosts
 
         echo "# Vagrant nodes" >> /etc/hosts
       SHELL

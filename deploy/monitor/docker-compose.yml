@@ -24,7 +24,7 @@ x-deploy-micro: &deploy-micro
 services:
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
-    <<: [*default-restart, *deploy-micro]
+    <<: [*default-restart, *deploy-small]
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -40,6 +40,7 @@ services:
     <<: [*default-restart, *deploy-small]
     command:
       - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-admin-api
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -47,7 +48,8 @@ services:
       - "9090:9090"
     extra_hosts:
       - "app-node:${APP_NODE_IP}"
-      - "devops-node:${DEVOPS_NODE_IP}"
+      - "cicd-node:${CICD_NODE_IP}"
+      - "runner-node:${RUNNER_NODE_IP}"
     depends_on:
       - cadvisor
     logging: *default-logging
