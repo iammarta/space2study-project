@@ -54,6 +54,8 @@ services:
     build:
       context: ../../frontend
     <<: [*default-restart, *deploy-tiny]
+    ports:
+      - "3000:80"
     depends_on:
       - backend
     logging: *default-logging
