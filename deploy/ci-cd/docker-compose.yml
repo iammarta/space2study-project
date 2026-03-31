@@ -35,6 +35,13 @@ x-deploy-small: &deploy-small
         cpus: '0.25'
         memory: 256M
 
+x-deploy-micro: &deploy-micro
+  deploy:
+    resources:
+      limits:
+        cpus: '0.1'
+        memory: 100M
+
 services:
   nexus:
     image: sonatype/nexus3:3.78.2
@@ -104,9 +111,20 @@ services:
       - jenkins-agent-workdir:/home/jenkins/agent
     logging: *default-logging
 
+  promtail:
+    image: grafana/promtail:3.0.0
+    <<: [*default-restart, *deploy-micro]
+    extra_hosts:
+      - "app-monitor-node:${APP_MONITOR_NODE_IP}"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    logging: *default-logging
+  
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
-    <<: [*default-restart, *deploy-small]
+    <<: [*default-restart, *deploy-micro]
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -115,17 +133,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     ports:
       - "8080:8080"
-    logging: *default-logging
-
-  promtail:
-    image: grafana/promtail:3.0.0
-    <<: [*default-restart, *deploy-small]
-    extra_hosts:
-      - "app-monitor-node:${APP_MONITOR_NODE_IP}"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
-    command: -config.file=/etc/promtail/config.yml
     logging: *default-logging
 
 volumes:
