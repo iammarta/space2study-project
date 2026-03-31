@@ -21,6 +21,13 @@ x-deploy-large: &deploy-large
         cpus: '1.0'
         memory: 2G
 
+x-deploy-medium: &deploy-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '0.8'
+        memory: 1.5G
+
 x-deploy-small: &deploy-small
   deploy:
     resources:
@@ -80,6 +87,23 @@ services:
       - jenkins-data:/var/jenkins_home
     logging: *default-logging
 
+  jenkins-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    container_name: jenkins-agent
+    <<: [*default-restart, *deploy-medium]
+    environment:
+      - JENKINS_URL=${JENKINS_URL}
+      - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
+      - JENKINS_SECRET=${JENKINS_SECRET}
+      - JENKINS_WEB_SOCKET=${JENKINS_WEB_SOCKET}
+    user: root
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins-agent-workdir:/home/jenkins/agent
+    logging: *default-logging
+
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
     <<: [*default-restart, *deploy-small]
@@ -97,7 +121,7 @@ services:
     image: grafana/promtail:3.0.0
     <<: [*default-restart, *deploy-small]
     extra_hosts:
-      - "monitor-node:${MONITOR_NODE_IP}"
+      - "app-monitor-node:${APP_MONITOR_NODE_IP}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
@@ -109,3 +133,4 @@ volumes:
   postgres_data:
   sonarqube_data:
   jenkins-data:
+  jenkins-agent-workdir:

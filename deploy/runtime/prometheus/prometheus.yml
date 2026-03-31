@@ -7,20 +7,12 @@ scrape_configs:
   static_configs:
   - targets: [ 'localhost:9090' ]
 
-- job_name: 'monitor-node'
+- job_name: 'app-monitor-node'
   static_configs:
   - targets: [ 'cadvisor:8080' ]
     labels:
-      instance: 'monitor-node:8080'
-
-- job_name: 'app-node'
-  static_configs:
-  - targets: [ 'app-node:8080' ]
+      instance: 'app-monitor-node:8080'
 
 - job_name: 'cicd-node'
   static_configs:
   - targets: [ 'cicd-node:8080' ]
-
-- job_name: 'runner-node'
-  static_configs:
-  - targets: [ 'runner-node:8080' ]

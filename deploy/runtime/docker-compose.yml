@@ -7,12 +7,26 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
+x-deploy-medium: &deploy-medium
+  deploy:
+    resources:
+      limits:
+        cpus: '0.5'
+        memory: 512M
+
 x-deploy-small: &deploy-small
   deploy:
     resources:
       limits:
         cpus: '0.25'
         memory: 256M
+
+x-deploy-tiny: &deploy-tiny
+  deploy:
+    resources:
+      limits:
+        cpus: '0.1'
+        memory: 64M
 
 x-deploy-micro: &deploy-micro
   deploy:
@@ -22,17 +36,49 @@ x-deploy-micro: &deploy-micro
         memory: 100M
 
 services:
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.55.1
-    <<: [*default-restart, *deploy-small]
+  mongodb:
+    image: mongo:6.0.18
+    <<: [*default-restart, *deploy-medium]
+    expose:
+      - "27017"
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - mongo-data:/data/db
+    logging: *default-logging
+
+  backend:
+    build:
+      context: ../../backend
+    <<: [*default-restart, *deploy-medium]
+    env_file:
+      - ../../backend/.env
+    expose:
+      - "5001"
+    depends_on:
+      - mongodb
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ../../frontend
+      args:
+        VITE_API_BASE_PATH: /api
+    <<: [*default-restart, *deploy-tiny]
+    expose:
+      - "80"
+    depends_on:
+      - backend
+    logging: *default-logging
+
+  nginx-lb:
+    image: nginx:1.27-alpine
+    <<: [*default-restart, *deploy-tiny]
     ports:
-      - "8080:8080"
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx-lb.conf:/etc/nginx/nginx.conf:ro
     logging: *default-logging
 
   prometheus:
@@ -40,16 +86,13 @@ services:
     <<: [*default-restart, *deploy-small]
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-      - --web.enable-admin-api
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
     extra_hosts:
-      - "app-node:${APP_NODE_IP}"
       - "cicd-node:${CICD_NODE_IP}"
-      - "runner-node:${RUNNER_NODE_IP}"
     depends_on:
       - cadvisor
     logging: *default-logging
@@ -73,7 +116,7 @@ services:
       - loki-data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     logging: *default-logging
-  
+
   promtail:
     image: grafana/promtail:3.0.0
     <<: [*default-restart, *deploy-micro]
@@ -83,7 +126,21 @@ services:
     command: -config.file=/etc/promtail/config.yml
     logging: *default-logging
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    <<: [*default-restart, *deploy-micro]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "8080:8080"
+    logging: *default-logging
+
 volumes:
+  mongo-data:
   prometheus-data:
   grafana-storage:
   loki-data:
