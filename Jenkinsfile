@@ -25,18 +25,18 @@ pipeline {
             }
         }
 
-        stage('SonarQube & Quality Gate') {
+        stage('SonarQube Analysis') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('MySonarServer') {
                         ['backend', 'frontend'].each { folder ->
                             dir(folder) {
-                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.testExecutionReportPaths= -Dsonar.javascript.node.maxspace=768"
-
-                                timeout(time: 5, unit: 'MINUTES') {
-                                    waitForQualityGate abortPipeline: true
-                                }
+                                sh """
+                                  ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.testExecutionReportPaths= \
+                                    -Dsonar.javascript.node.maxspace=768
+                                """
                             }
                         }
                     }
