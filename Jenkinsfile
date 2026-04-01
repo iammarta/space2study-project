@@ -10,6 +10,23 @@ pipeline {
 
     stages {
 
+        stage('SCA Scan: Snyk') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                        sh 'snyk auth ${SNYK_TOKEN}'
+
+                        ['backend', 'frontend'].each { folder ->
+                            dir(folder) {
+                                echo "Running Snyk scan in ${folder}..."
+                                sh 'snyk test || true'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -24,17 +41,6 @@ pipeline {
                                 """
                             }
                         }
-                    }
-                }
-            }
-        }
-
-        stage('Dependency Scan') {
-            steps {
-                script {
-                    ['backend', 'frontend'].each { folder ->
-                        echo "Checking dependencies in ${folder}..."
-                        sh "trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 0 ${folder}"
                     }
                 }
             }
@@ -55,7 +61,7 @@ pipeline {
             }
         }
 
-        stage('Image Scan') {
+        stage('Image Scan: Trivy') {
             steps {
                 script {
                     ['backend', 'frontend'].each { app ->
