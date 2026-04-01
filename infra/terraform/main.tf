@@ -141,3 +141,17 @@ resource "aws_instance" "runtime" {
     Name = var.instance_name
   }
 }
+
+resource "aws_eip" "runtime_eip" {
+  instance = aws_instance.runtime.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "runtime-static-ip"
+  }
+}
+
+output "elastic_ip" {
+  description = "Fixed Public IP for the runtime node"
+  value       = aws_eip.runtime_eip.public_ip
+}
