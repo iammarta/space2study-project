@@ -1,8 +1,6 @@
 pipeline {
     agent { label 'docker-agent' }
 
-    tools { nodejs 'node18' }
-
     environment {
         NEXUS_REGISTRY = "${env.NEXUS_REGISTRY}"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
@@ -19,7 +17,7 @@ pipeline {
                         ['backend', 'frontend'].each { folder ->
                             dir(folder) {
                                 echo "Running Snyk scan in ${folder}..."
-                                sh 'snyk test || true'
+                                sh 'snyk test --severity-threshold=high || true'
                             }
                         }
                     }
@@ -68,7 +66,7 @@ pipeline {
                         def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
 
                         echo "Scanning image ${tag}..."
-                        sh "trivy image --severity HIGH,CRITICAL --exit-code 0 ${tag}"
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${tag}"
                     }
                 }
             }
