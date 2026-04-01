@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y docker.io curl gnupg lsb-release && \
     mkdir -p /usr/share/keyrings && \
     curl -sfL https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/trivy.list && \
+    echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb bookworm main" > /etc/apt/sources.list.d/trivy.list && \
     apt-get update && \
     apt-get install -y trivy && \
     apt-get clean && \
