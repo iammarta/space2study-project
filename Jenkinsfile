@@ -17,7 +17,7 @@ pipeline {
                         ['backend', 'frontend'].each { folder ->
                             dir(folder) {
                                 echo "Running Snyk scan in ${folder}..."
-                                sh 'snyk test -d --severity-threshold=high || true'
+                                sh 'snyk test --severity-threshold=high || true'
                             }
                         }
                     }
