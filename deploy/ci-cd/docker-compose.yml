@@ -109,6 +109,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - jenkins-agent-workdir:/home/jenkins/agent
+      - trivy_cache:/root/.cache/trivy
     logging: *default-logging
 
   promtail:
@@ -141,3 +142,4 @@ volumes:
   sonarqube_data:
   jenkins-data:
   jenkins-agent-workdir:
+  trivy_cache:
