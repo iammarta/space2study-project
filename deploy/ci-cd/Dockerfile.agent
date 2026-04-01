@@ -3,12 +3,13 @@ FROM jenkins/inbound-agent:3345.v03dee9b_f88fc-2-jdk17
 USER root
 
 RUN apt-get update && \
-    apt-get install -y docker.io curl gnupg lsb-release && \
+    apt-get install -y docker.io curl gnupg lsb-release nodejs npm && \
     mkdir -p /usr/share/keyrings && \
     curl -sfL https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor -o /usr/share/keyrings/trivy.gpg && \
     echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb bookworm main" > /etc/apt/sources.list.d/trivy.list && \
     apt-get update && \
     apt-get install -y trivy && \
+    npm install -g snyk && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
