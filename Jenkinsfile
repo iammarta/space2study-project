@@ -32,11 +32,7 @@ pipeline {
                     withSonarQubeEnv('MySonarServer') {
                         ['backend', 'frontend'].each { folder ->
                             dir(folder) {
-                                sh """
-                                  ${scannerHome}/bin/sonar-scanner \
-                                    -Dsonar.testExecutionReportPaths= \
-                                    -Dsonar.javascript.node.maxspace=768
-                                """
+                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.javascript.node.maxspace=768"
                             }
                         }
                     }
