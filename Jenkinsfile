@@ -62,7 +62,7 @@ pipeline {
                         def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
 
                         echo "Scanning image ${tag}..."
-                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 ${tag}"
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
                     }
                 }
             }
