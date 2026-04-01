@@ -92,6 +92,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'aws-runtime-ip', variable: 'AWS_IP')]) {
                     script {
                         ansiblePlaybook(
+                            installation: 'ansible',
                             playbook: 'ansible/deploy.yml',
                             inventory: 'ansible/inventory.ini',
                             extraVars: [
