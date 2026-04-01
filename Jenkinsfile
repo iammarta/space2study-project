@@ -96,7 +96,7 @@ pipeline {
                             playbook: 'ansible/deploy.yml',
                             inventory: 'ansible/inventory.ini',
                             extraVars: [
-                                remote_ip: "${AWS_IP}"
+                                ansible_host: "${AWS_IP}",
                             ],
                             credentialsId: 'aws-runtime-key'
                         )
