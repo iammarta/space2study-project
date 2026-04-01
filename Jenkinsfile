@@ -86,6 +86,23 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy with Ansible') {
+            steps {
+                withCredentials([string(credentialsId: 'aws-runtime-ip', variable: 'AWS_IP')]) {
+                    script {
+                        ansiblePlaybook(
+                            playbook: 'ansible/deploy.yml',
+                            inventory: 'ansible/inventory.ini',
+                            extraVars: [
+                                remote_ip: "${AWS_IP}"
+                            ],
+                            credentialsId: 'aws-runtime-key'
+                        )
+                    }
+                }
+            }
+        }
     }
 
     post {
