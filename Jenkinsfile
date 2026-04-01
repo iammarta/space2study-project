@@ -29,7 +29,46 @@ pipeline {
             }
         }
 
-        stage('Build & Push') {
+        stage('Dependency Scan') {
+            steps {
+                script {
+                    ['backend', 'frontend'].each { folder ->
+                        echo "Checking dependencies in ${folder}..."
+                        sh "trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 0 ${folder}"
+                    }
+                }
+            }
+        }
+
+        stage('Build Images') {
+            steps {
+                script {
+                    ['backend', 'frontend'].each { app ->
+                        def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                        def latest = "${NEXUS_REGISTRY}/${app}:latest"
+
+                        dir(app) {
+                            sh "docker build -t ${tag} -t ${latest} ."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Image Scan') {
+            steps {
+                script {
+                    ['backend', 'frontend'].each { app ->
+                        def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+
+                        echo "Scanning image ${tag}..."
+                        sh "trivy image --severity HIGH,CRITICAL --exit-code 0 ${tag}"
+                    }
+                }
+            }
+        }
+
+        stage('Push Images') {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
@@ -38,12 +77,10 @@ pipeline {
                         ['backend', 'frontend'].each { app ->
                             def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
                             def latest = "${NEXUS_REGISTRY}/${app}:latest"
-                            
-                            dir(app) {
-                                sh "docker build -t ${tag} -t ${latest} ."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
+
+                            echo "Pushing ${app} images to Nexus..."
+                            sh "docker push ${tag}"
+                            sh "docker push ${latest}"
                         }
                     }
                 }
