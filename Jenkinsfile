@@ -2,7 +2,9 @@ pipeline {
     agent { label 'docker-agent' }
 
     environment {
-        NEXUS_REGISTRY = "${env.NEXUS_REGISTRY}"
+        AWS_REGION = "eu-central-1"
+        AWS_ACCOUNT_ID = "614441038759"
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
 
@@ -67,39 +69,18 @@ pipeline {
                 }
             }
         }
-
-        stage('Push Images') {
+        
+        stage('Push to ECR') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
-                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
+                    ['backend', 'frontend'].each { app ->
+                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
+                        def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
 
-                        ['backend', 'frontend'].each { app ->
-                            def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                            def latest = "${NEXUS_REGISTRY}/${app}:latest"
-
-                            echo "Pushing ${app} images to Nexus..."
-                            sh "docker push ${tag}"
-                            sh "docker push ${latest}"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Deploy with Ansible') {
-            steps {
-                withCredentials([string(credentialsId: 'aws-runtime-ip', variable: 'AWS_IP')]) {
-                    script {
-                        ansiblePlaybook(
-                            installation: 'ansible',
-                            playbook: 'ansible/deploy.yml',
-                            inventory: 'ansible/inventory.ini',
-                            extraVars: [
-                                ansible_host: "${AWS_IP}",
-                            ],
-                            credentialsId: 'aws-runtime-key'
-                        )
+                        sh """
+                            docker push ${tag}
+                            docker push ${latest}
+                        """
                     }
                 }
             }
