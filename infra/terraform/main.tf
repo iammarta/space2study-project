@@ -1,157 +1,43 @@
-resource "aws_key_pair" "runtime_key" {
-  key_name   = "app-monitor-node-key"
-  public_key = file(var.public_key_path)
+module "key_pair" {
+  source          = "./modules/key_pair"
+  key_name        = var.key_name
+  public_key_path = var.public_key_path
 }
 
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name = "project-vpc"
-  }
+module "vpc" {
+  source   = "./modules/vpc"
+  vpc_cidr = var.vpc_cidr
 }
 
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "project-public-subnet"
-  }
+module "subnet" {
+  source            = "./modules/subnet"
+  vpc_id            = module.vpc.vpc_id
+  public_subnet_cidr = var.public_subnet_cidr
 }
 
-resource "aws_internet_gateway" "gw" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "project-igw"
-  }
+module "security_group" {
+  source             = "./modules/security_group"
+  vpc_id             = module.vpc.vpc_id
+  admin_ingress_cidr = var.admin_ingress_cidr
 }
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.gw.id
-  }
-
-  tags = {
-    Name = "project-public-rt"
-  }
+module "ec2" {
+  source                 = "./modules/ec2"
+  instance_name          = var.instance_name
+  instance_type          = var.instance_type
+  subnet_id              = module.subnet.subnet_id
+  vpc_security_group_ids = [module.security_group.security_group_id]
+  key_name               = module.key_pair.key_name
 }
 
-resource "aws_route_table_association" "public_assoc" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
+module "eip" {
+  source      = "./modules/eip"
+  instance_id = module.ec2.instance_id
 }
 
-resource "aws_security_group" "runtime_sg" {
-  name        = "runtime-sg"
-  description = "Allow SSH, HTTP, Grafana, Prometheus, Loki, and cAdvisor"
-  vpc_id      = aws_vpc.main.id
+module "ecr" {
+  source = "./modules/ecr"
 
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_ingress_cidr]
-  }
-
-  ingress {
-    description = "HTTP app"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "Grafana"
-    from_port   = 3000
-    to_port     = 3000
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_ingress_cidr]
-  }
-
-  ingress {
-    description = "Prometheus"
-    from_port   = 9090
-    to_port     = 9090
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_ingress_cidr]
-  }
-
-  ingress {
-    description = "Loki"
-    from_port   = 3100
-    to_port     = 3100
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_ingress_cidr]
-  }
-
-  ingress {
-    description = "cAdvisor"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [var.admin_ingress_cidr]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "runtime-sg"
-  }
-}
-
-data "aws_ami" "ubuntu_arm" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-resource "aws_instance" "runtime" {
-  ami                         = data.aws_ami.ubuntu_arm.id
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.public.id
-  vpc_security_group_ids      = [aws_security_group.runtime_sg.id]
-  associate_public_ip_address = true
-  key_name                    = aws_key_pair.runtime_key.key_name
-
-  tags = {
-    Name = var.instance_name
-  }
-}
-
-resource "aws_eip" "runtime_eip" {
-  instance = aws_instance.runtime.id
-  domain   = "vpc"
-
-  tags = {
-    Name = "runtime-static-ip"
-  }
-}
-
-output "elastic_ip" {
-  description = "Fixed Public IP for the runtime node"
-  value       = aws_eip.runtime_eip.public_ip
+  backend_repo_name  = var.backend_repo_name
+  frontend_repo_name = var.frontend_repo_name
 }
