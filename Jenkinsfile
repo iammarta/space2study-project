@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                        sh 'snyk auth ${SNYK_TOKEN}'
+                        sh "snyk auth ${SNYK_TOKEN}"
 
                         ['backend', 'frontend'].each { folder ->
                             dir(folder) {
@@ -42,12 +42,28 @@ pipeline {
             }
         }
 
+        stage('Login to ECR') {
+            steps {
+                script {
+                    withCredentials([[
+                        $class: 'AmazonWebServicesCredentialsBinding',
+                        credentialsId: 'aws-creds'
+                    ]]) {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} \
+                            | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        """
+                    }
+                }
+            }
+        }
+
         stage('Build Images') {
             steps {
                 script {
                     ['backend', 'frontend'].each { app ->
-                        def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                        def latest = "${NEXUS_REGISTRY}/${app}:latest"
+                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
+                        def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
 
                         dir(app) {
                             sh "docker build -t ${tag} -t ${latest} ."
@@ -61,7 +77,7 @@ pipeline {
             steps {
                 script {
                     ['backend', 'frontend'].each { app ->
-                        def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
+                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
 
                         echo "Scanning image ${tag}..."
                         sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
@@ -69,7 +85,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Push to ECR') {
             steps {
                 script {
@@ -89,7 +105,7 @@ pipeline {
 
     post {
         always {
-            sh "docker logout ${NEXUS_REGISTRY} || true"
+            sh "docker logout ${ECR_REGISTRY} || true"
             cleanWs()
         }
     }
