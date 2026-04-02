@@ -66,7 +66,11 @@ pipeline {
                         def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
 
                         dir(app) {
-                            sh "docker build -t ${tag} -t ${latest} ."
+                            if (app == 'frontend') {
+                                sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
+                            } else {
+                                sh "docker build -t ${tag} -t ${latest} ."
+                            }
                         }
                     }
                 }
