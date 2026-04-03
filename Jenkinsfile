@@ -9,19 +9,16 @@ pipeline {
     }
 
     stages {
-
         stage('SCA Scan: Snyk') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
-                        sh "snyk auth ${SNYK_TOKEN}"
-
-                        ['backend', 'frontend'].each { folder ->
-                            dir(folder) {
-                                echo "Running Snyk scan in ${folder}..."
-                                sh 'snyk test --severity-threshold=high || true'
-                            }
-                        }
+                        sh 'snyk auth $SNYK_TOKEN'
+                        
+                        parallel(
+                            "Backend Snyk": { dir('backend') { sh 'snyk test --severity-threshold=high || true' } },
+                            "Frontend Snyk": { dir('frontend') { sh 'snyk test --severity-threshold=high || true' } }
+                        )
                     }
                 }
             }
@@ -32,11 +29,18 @@ pipeline {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('MySonarServer') {
-                        ['backend', 'frontend'].each { folder ->
-                            dir(folder) {
-                                sh "${scannerHome}/bin/sonar-scanner -Dsonar.testExecutionReportPaths= -Dsonar.javascript.node.maxspace=768 -Dsonar.scanner.skipNodeProvisioning=true"
+                        parallel(
+                            "Backend Sonar": {
+                                dir('backend') {
+                                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.testExecutionReportPaths= -Dsonar.javascript.node.maxspace=768 -Dsonar.scanner.skipNodeProvisioning=true"
+                                }
+                            },
+                            "Frontend Sonar": {
+                                dir('frontend') {
+                                    sh "${scannerHome}/bin/sonar-scanner -Dsonar.testExecutionReportPaths= -Dsonar.javascript.node.maxspace=768 -Dsonar.scanner.skipNodeProvisioning=true"
+                                }
                             }
-                        }
+                        )
                     }
                 }
             }
@@ -45,63 +49,46 @@ pipeline {
         stage('Login to ECR') {
             steps {
                 script {
-                    withCredentials([[
-                        $class: 'AmazonWebServicesCredentialsBinding',
-                        credentialsId: 'aws-creds'
-                    ]]) {
-                        sh """
-                            aws ecr get-login-password --region ${AWS_REGION} \
-                            | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        """
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
                     }
                 }
             }
         }
 
-        stage('Build Images') {
+        stage('Build & Scan & Push') {
             steps {
                 script {
-                    ['backend', 'frontend'].each { app ->
-                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                        def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+                    parallel(
+                        "Backend Pipeline": {
+                            def app = 'backend'
+                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
+                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
 
-                        dir(app) {
-                            if (app == 'frontend') {
-                                sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
-                            } else {
+                            dir(app) {
                                 sh "docker build -t ${tag} -t ${latest} ."
+                                echo "Scanning Backend Image..."
+                                sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                                echo "Pushing Backend Image..."
+                                sh "docker push ${tag}"
+                                sh "docker push ${latest}"
+                            }
+                        },
+                        "Frontend Pipeline": {
+                            def app = 'frontend'
+                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
+                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+
+                            dir(app) {
+                                sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
+                                echo "Scanning Frontend Image..."
+                                sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                                echo "Pushing Frontend Image..."
+                                sh "docker push ${tag}"
+                                sh "docker push ${latest}"
                             }
                         }
-                    }
-                }
-            }
-        }
-
-        stage('Image Scan: Trivy') {
-            steps {
-                script {
-                    ['backend', 'frontend'].each { app ->
-                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-
-                        echo "Scanning image ${tag}..."
-                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
-                    }
-                }
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                script {
-                    ['backend', 'frontend'].each { app ->
-                        def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                        def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
-
-                        sh """
-                            docker push ${tag}
-                            docker push ${latest}
-                        """
-                    }
+                    )
                 }
             }
         }
