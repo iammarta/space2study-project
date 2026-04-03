@@ -11,13 +11,6 @@ x-deploy-huge: &deploy-huge
   deploy:
     resources:
       limits:
-        cpus: '1.0'
-        memory: 2.2G
-
-x-deploy-jenkins-agent: &deploy-jenkins-agent
-  deploy:
-    resources:
-      limits:
         cpus: '2.0'
         memory: 4G
 
@@ -43,18 +36,6 @@ x-deploy-micro: &deploy-micro
         memory: 100M
 
 services:
-  nexus:
-    image: sonatype/nexus3:3.78.2
-    <<: [*default-restart, *deploy-huge]
-    environment:
-      - INSTALL4J_ADD_VM_PARAMS=${NEXUS_JVM_PARAMS}
-    ports:
-      - "8081:8081"
-      - "8082:8082"
-    volumes:
-      - nexus-data:/nexus-data
-    logging: *default-logging
-
   sonarqube-db:
     image: postgres:15.12-alpine
     <<: [*default-restart, *deploy-small]
@@ -99,7 +80,7 @@ services:
       context: .
       dockerfile: Dockerfile.agent
     container_name: jenkins-agent
-    <<: [*default-restart, *deploy-jenkins-agent]
+    <<: [*default-restart, *deploy-huge]
     environment:
       - JENKINS_URL=${JENKINS_URL}
       - JENKINS_AGENT_NAME=${JENKINS_AGENT_NAME}
@@ -137,7 +118,6 @@ services:
     logging: *default-logging
 
 volumes:
-  nexus-data:
   postgres_data:
   sonarqube_data:
   jenkins-data:
