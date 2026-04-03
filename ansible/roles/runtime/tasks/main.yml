@@ -95,6 +95,12 @@
     AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
     AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
 
+- name: Pull latest images from ECR
+  shell: docker compose pull
+  args:
+    chdir: /home/ubuntu/app
+    executable: /bin/bash
+
 - name: Recreate runtime stack
   shell: docker compose up -d --force-recreate
   args:
