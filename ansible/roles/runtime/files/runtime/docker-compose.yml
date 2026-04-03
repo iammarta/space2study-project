@@ -46,11 +46,10 @@ services:
     logging: *default-logging
 
   backend:
-    build:
-      context: ../../backend
+    image: ${BACKEND_IMAGE}
     <<: [*default-restart, *deploy-medium]
     env_file:
-      - ../../backend/.env
+      - .env.backend
     expose:
       - "5001"
     depends_on:
@@ -58,10 +57,7 @@ services:
     logging: *default-logging
 
   frontend:
-    build:
-      context: ../../frontend
-      args:
-        VITE_API_BASE_PATH: /api
+    image: ${FRONTEND_IMAGE}
     <<: [*default-restart, *deploy-tiny]
     expose:
       - "80"
@@ -91,8 +87,6 @@ services:
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
-    extra_hosts:
-      - "cicd-node:${CICD_NODE_IP}"
     depends_on:
       - cadvisor
     logging: *default-logging
