@@ -3,7 +3,7 @@ Vagrant.configure("2") do |config|
 
   nodes = {
     "app-monitor-node" => { hostname: "app-monitor-node", ssh: 2221, mem: 4096, cpu: 2 },
-    "cicd-node" => { hostname: "cicd-node", ssh: 2222, mem: 8192, cpu: 2 }
+    "cicd-node" => { hostname: "cicd-node", ssh: 2222, mem: 10240, cpu: 2 }
   }
 
   nodes.each do |name, conf|
