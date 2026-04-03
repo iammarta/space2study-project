@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM node:18-alpine AS build
+FROM node:18.19.0-alpine3.19 AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
