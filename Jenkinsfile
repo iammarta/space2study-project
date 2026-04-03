@@ -30,12 +30,16 @@ pipeline {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('MySonarServer') {
                         dir('backend') {
-                            echo "Analyzing Backend..."
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.javascript.node.maxspace=768 -Dsonar.scanner.skipNodeProvisioning=true"
+                            sh "${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.javascript.node.maxspace=768 \
+                                -Dsonar.scanner.skipNodeProvisioning=true \
+                                -Dsonar.testExecutionReportPaths="
                         }
                         dir('frontend') {
-                            echo "Analyzing Frontend..."
-                            sh "${scannerHome}/bin/sonar-scanner -Dsonar.javascript.node.maxspace=768 -Dsonar.scanner.skipNodeProvisioning=true"
+                            sh "${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.javascript.node.maxspace=768 \
+                                -Dsonar.scanner.skipNodeProvisioning=true \
+                                -Dsonar.testExecutionReportPaths="
                         }
                     }
                 }
