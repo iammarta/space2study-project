@@ -2,8 +2,8 @@ pipeline {
     agent { label 'docker-agent' }
 
     environment {
-        AWS_REGION = "eu-central-1"
-        AWS_ACCOUNT_ID = "614441038759"
+        AWS_REGION = "${env.AWS_DEFAULT_REGION}"
+        AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
     }
