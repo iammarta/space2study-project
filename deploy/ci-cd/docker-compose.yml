@@ -28,13 +28,6 @@ x-deploy-large: &deploy-large
         cpus: '1.0'
         memory: 2G
 
-x-deploy-medium: &deploy-medium
-  deploy:
-    resources:
-      limits:
-        cpus: '0.8'
-        memory: 1.5G
-
 x-deploy-small: &deploy-small
   deploy:
     resources:
