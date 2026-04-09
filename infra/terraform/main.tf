@@ -25,14 +25,19 @@ module "ec2" {
   source                 = "./modules/ec2"
   instance_name          = var.instance_name
   instance_type          = var.instance_type
+  root_volume_size       = var.root_volume_size
   subnet_id              = module.subnet.subnet_id
   vpc_security_group_ids = [module.security_group.security_group_id]
   key_name               = module.key_pair.key_name
 }
 
-module "eip" {
-  source      = "./modules/eip"
-  instance_id = module.ec2.instance_id
+data "aws_eip" "runtime_eip" {
+  id = var.eip_allocation_id
+}
+
+resource "aws_eip_association" "runtime_eip_assoc" {
+  instance_id   = module.ec2.instance_id
+  allocation_id = var.eip_allocation_id
 }
 
 module "ecr" {

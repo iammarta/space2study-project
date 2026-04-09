@@ -1,0 +1,19 @@
+alertmanager:
+  enabled: false
+
+grafana:
+  adminUser: "{{ grafana_secret.username }}"
+  adminPassword: "{{ grafana_secret.password }}"
+  service:
+    type: NodePort
+    nodePort: 32000
+
+prometheus:
+  service:
+    type: ClusterIP
+
+kube-state-metrics:
+  enabled: true
+
+prometheus-node-exporter:
+  enabled: true

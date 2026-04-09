@@ -8,6 +8,12 @@ variable "instance_type" {
   type        = string
 }
 
+variable "root_volume_size" {
+  description = "Root EBS volume size in GiB"
+  type        = number
+  default     = 20
+}
+
 variable "subnet_id" {
   description = "Subnet ID"
   type        = string

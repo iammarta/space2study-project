@@ -28,6 +28,14 @@ resource "aws_security_group" "runtime_sg" {
   }
 
   ingress {
+    description = "Grafana NodePort"
+    from_port   = 32000
+    to_port     = 32000
+    protocol    = "tcp"
+    cidr_blocks = [var.admin_ingress_cidr]
+  }
+
+  ingress {
     description = "Prometheus"
     from_port   = 9090
     to_port     = 9090
