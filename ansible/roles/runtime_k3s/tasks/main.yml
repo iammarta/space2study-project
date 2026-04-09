@@ -1,0 +1,200 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+    - curl
+    - ca-certificates
+    - gnupg
+    - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Install AWS CLI via snap
+  community.general.snap:
+    name: aws-cli
+    classic: true
+
+- name: Install k3s
+  ansible.builtin.shell: |
+    curl -sfL https://get.k3s.io | sh -
+  args:
+    creates: /usr/local/bin/k3s
+
+- name: Ensure k3s service is running
+  ansible.builtin.systemd:
+    name: k3s
+    enabled: yes
+    state: started
+
+- name: Install Helm
+  ansible.builtin.shell: |
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Create .kube directory for ubuntu
+  ansible.builtin.file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Copy kubeconfig for ubuntu user
+  ansible.builtin.copy:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: /home/ubuntu/.kube/config
+    remote_src: true
+    owner: ubuntu
+    group: ubuntu
+    mode: "0600"
+
+- name: Ensure KUBECONFIG is set for ubuntu user
+  ansible.builtin.lineinfile:
+    path: /home/ubuntu/.bashrc
+    line: 'export KUBECONFIG=/home/ubuntu/.kube/config'
+    state: present
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Create Kubernetes manifests directory
+  ansible.builtin.file:
+    path: /home/ubuntu/app/k8s
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Copy static Kubernetes app manifests
+  ansible.builtin.copy:
+    src: ../../../k8s/app/
+    dest: /home/ubuntu/app/k8s/
+    owner: ubuntu
+    group: ubuntu
+    mode: preserve
+
+- name: Render templated Kubernetes manifests
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+  loop:
+  - src: backend-configmap.yml.j2
+    dest: /home/ubuntu/app/k8s/backend-configmap.yml
+  - src: backend-deployment.yml.j2
+    dest: /home/ubuntu/app/k8s/backend-deployment.yml
+  - src: frontend-deployment.yml.j2
+    dest: /home/ubuntu/app/k8s/frontend-deployment.yml
+  - src: ingress.yml.j2
+    dest: /home/ubuntu/app/k8s/ingress.yml
+
+- name: Get Grafana secret from AWS Secrets Manager
+  ansible.builtin.command: >
+    aws secretsmanager get-secret-value --secret-id {{ grafana_secret_name }} --region {{ aws_region }} --query SecretString --output text
+  register: grafana_secret_raw
+  no_log: true
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+
+- name: Parse Grafana secret JSON
+  ansible.builtin.set_fact:
+    grafana_secret: "{{ grafana_secret_raw.stdout | from_json }}"
+  no_log: true
+
+- name: Render monitoring Helm values
+  ansible.builtin.template:
+    src: monitoring-values.yml.j2
+    dest: /home/ubuntu/app/monitoring-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Copy loki Helm values
+  ansible.builtin.copy:
+    src: loki-values.yml
+    dest: /home/ubuntu/app/loki-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Copy alloy Helm values
+  ansible.builtin.copy:
+    src: alloy-values.yml
+    dest: /home/ubuntu/app/alloy-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Get ECR login password
+  ansible.builtin.command: aws ecr get-login-password --region {{ aws_region }}
+  register: ecr_password
+  no_log: true
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ aws_access_key_id }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws_secret_access_key }}"
+
+- name: Create namespace first
+  ansible.builtin.shell: |
+    kubectl create namespace space2study --dry-run=client -o yaml | kubectl apply -f -
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Create or update ECR image pull secret
+  ansible.builtin.shell: |
+    kubectl -n space2study create secret docker-registry ecr-registry-secret \
+      --docker-server={{ aws_account_id }}.dkr.ecr.{{ aws_region }}.amazonaws.com \
+      --docker-username=AWS \
+      --docker-password='{{ ecr_password.stdout }}' \
+      --dry-run=client -o yaml | kubectl apply -f -
+  no_log: true
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Add prometheus-community Helm repo
+  ansible.builtin.command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Add grafana Helm repo
+  ansible.builtin.command: helm repo add grafana https://grafana.github.io/helm-charts
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Update Helm repos
+  ansible.builtin.command: helm repo update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install kube-prometheus-stack
+  ansible.builtin.shell: |
+    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+      --namespace space2study \
+      --create-namespace \
+      -f /home/ubuntu/app/monitoring-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install Loki
+  ansible.builtin.shell: |
+    helm upgrade --install loki grafana/loki \
+      --namespace space2study \
+      -f /home/ubuntu/app/loki-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install Alloy
+  ansible.builtin.shell: |
+    helm upgrade --install alloy grafana/alloy \
+      --namespace space2study \
+      -f /home/ubuntu/app/alloy-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Apply application manifests
+  ansible.builtin.command: kubectl apply -k /home/ubuntu/app/k8s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml

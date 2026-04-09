@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: space2study
+data:
+  SERVER_PORT: "5001"
+  MONGODB_URL: "mongodb://mongodb:27017/space2study"
+  SERVER_URL: "http://{{ app_domain }}"
+  CLIENT_URL: "http://{{ app_domain }}"
+  COOKIE_DOMAIN: "{{ app_domain }}"

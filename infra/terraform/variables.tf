@@ -16,6 +16,12 @@ variable "instance_type" {
   default     = "t4g.medium"
 }
 
+variable "root_volume_size" {
+  description = "Root EBS volume size in GiB"
+  type        = number
+  default     = 20
+}
+
 variable "public_key_path" {
   description = "Path to SSH public key"
   type        = string
@@ -60,4 +66,9 @@ variable "frontend_repo_name" {
   description = "Name of frontend ECR repository"
   type        = string
   default     = "space2study-frontend"
+}
+
+variable "eip_allocation_id" {
+  description = "Allocation ID of an existing Elastic IP"
+  type        = string
 }

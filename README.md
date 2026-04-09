@@ -51,4 +51,41 @@ In this task, I implemented Infrastructure as Code using **Terraform** with a **
 In this task, I added security scanning to the Jenkins pipeline. **Snyk** is used to scan backend and frontend dependencies for known vulnerabilities, while **Trivy** is used to scan Docker images before they are pushed to the registry.
 
 # Implement Automatisation Setup a Webapp
-In this task, I automated web application deployment using **Ansible roles**. The playbook prepares the runtime server, installs the required tools, authenticates with AWS ECR, pulls the latest backend and frontend images, and starts the full application stack with Docker Compose. During this task, I also replaced the previously used local Nexus registry with AWS ECR to make deployment suitable for the cloud environment.
+In this task, I automated the deployment of the web application using **Ansible** and **Kubernetes (k3s)**. The playbook provisions the runtime environment, installs required tools (Docker, k3s, Helm), configures access to AWS, and deploys the application using Kubernetes manifests.
+
+The deployment process includes:
+- Rendering templated Kubernetes manifests using Ansible (e.g., deployments, config maps, ingress)
+- Creating Kubernetes resources via `kubectl apply -k`
+- Authenticating with AWS ECR and creating image pull secrets
+- Installing monitoring components via Helm
+
+# Orchestration Web Application via k8s
+In this task, I migrated the application to **Kubernetes (k3s)** and implemented container orchestration using **Deployments, Services, and Ingress**.
+
+The application is deployed with multiple replicas for both backend and frontend, enabling **horizontal scaling** and **high availability**. I configured a **RollingUpdate strategy** to ensure zero-downtime deployments.
+
+Traffic routing is handled via **Traefik Ingress Controller**, which routes requests to the appropriate services based on URL paths.
+
+# Implement Secret Management Strategies
+In this task, I implemented a multi-layered secret management approach to securely handle sensitive data.
+
+The solution includes:
+- **Ansible Vault** for encrypting sensitive variables (e.g., AWS credentials)
+- **AWS Secrets Manager** for storing external secrets (e.g., Grafana credentials)
+- **Kubernetes Secrets** for securely injecting runtime configuration into pods (e.g., image pull secrets)
+
+Secrets are not stored in plain text in the repository and are dynamically retrieved and injected during deployment. This approach improves security and aligns with best practices for handling sensitive data in cloud-native environments.
+
+# Migrate an Application to the Cloud
+In this task, I migrated the application from a local environment to **AWS cloud infrastructure**.
+
+Using **Terraform**, I provisioned cloud resources including:
+- VPC and networking components
+- EC2 instance for runtime
+- Security groups
+- Elastic IP for stable public access
+- Amazon ECR for container image storage
+- S3 bucket for remote Terraform state storage
+
+The application is now accessible via a custom domain (`space2study.online`) and deployed on a cloud-based Kubernetes cluster (k3s).
+
