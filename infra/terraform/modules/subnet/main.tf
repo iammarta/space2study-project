@@ -4,7 +4,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "project-public-subnet"
+    Name = "space2study-public-subnet"
   }
 }
 
@@ -12,7 +12,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "project-igw"
+    Name = "space2study-igw"
   }
 }
 
@@ -25,7 +25,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "project-public-rt"
+    Name = "space2study-public-rt"
   }
 }
 
