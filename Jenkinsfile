@@ -68,7 +68,7 @@ pipeline {
                             dir(app) {
                                 sh "docker build -t ${tag} -t ${latest} ."
                                 echo "Scanning Backend Image..."
-                                sh "trivy image --cache-dir /tmp/trivy-backend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                                sh "trivy image --cache-dir /root/.cache/trivy/backend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
                                 echo "Pushing Backend Image..."
                                 sh "docker push ${tag}"
                                 sh "docker push ${latest}"
@@ -82,7 +82,7 @@ pipeline {
                             dir(app) {
                                 sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
                                 echo "Scanning Frontend Image..."
-                                sh "trivy image --cache-dir /tmp/trivy-frontend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                                sh "trivy image --cache-dir /root/.cache/trivy/frontend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
                                 echo "Pushing Frontend Image..."
                                 sh "docker push ${tag}"
                                 sh "docker push ${latest}"
