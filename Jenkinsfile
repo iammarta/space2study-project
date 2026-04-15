@@ -97,6 +97,8 @@ pipeline {
     post {
         always {
             sh "docker logout ${ECR_REGISTRY} || true"
+            sh "docker image prune -f || true"
+            sh "docker builder prune -af || true"
             cleanWs()
         }
     }
