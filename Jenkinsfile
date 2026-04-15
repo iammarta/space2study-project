@@ -14,7 +14,7 @@ pipeline {
                 script {
                     withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
                         sh 'snyk auth $SNYK_TOKEN'
-                        
+
                         parallel(
                             "Backend Snyk": { dir('backend') { sh 'snyk test --severity-threshold=high || true' } },
                             "Frontend Snyk": { dir('frontend') { sh 'snyk test --severity-threshold=high || true' } }
@@ -59,36 +59,29 @@ pipeline {
         stage('Build & Scan & Push') {
             steps {
                 script {
-                    parallel(
-                        "Backend Pipeline": {
-                            def app = 'backend'
-                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+                    dir('backend') {
+                        def tag = "${ECR_REGISTRY}/space2study-backend:${env.BUILD_NUMBER}"
+                        def latest = "${ECR_REGISTRY}/space2study-backend:latest"
 
-                            dir(app) {
-                                sh "docker build -t ${tag} -t ${latest} ."
-                                echo "Scanning Backend Image..."
-                                sh "trivy image --cache-dir /root/.cache/trivy/backend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
-                                echo "Pushing Backend Image..."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
-                        },
-                        "Frontend Pipeline": {
-                            def app = 'frontend'
-                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+                        sh "docker build --progress=plain -t ${tag} -t ${latest} ."
+                        echo "Scanning Backend Image..."
+                        sh "trivy image --cache-dir /root/.cache/trivy/backend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                        echo "Pushing Backend Image..."
+                        sh "docker push ${tag}"
+                        sh "docker push ${latest}"
+                    }
 
-                            dir(app) {
-                                sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
-                                echo "Scanning Frontend Image..."
-                                sh "trivy image --cache-dir /root/.cache/trivy/frontend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
-                                echo "Pushing Frontend Image..."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
-                        }
-                    )
+                    dir('frontend') {
+                        def tag = "${ECR_REGISTRY}/space2study-frontend:${env.BUILD_NUMBER}"
+                        def latest = "${ECR_REGISTRY}/space2study-frontend:latest"
+
+                        sh "docker build --progress=plain --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
+                        echo "Scanning Frontend Image..."
+                        sh "trivy image --cache-dir /root/.cache/trivy/frontend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
+                        echo "Pushing Frontend Image..."
+                        sh "docker push ${tag}"
+                        sh "docker push ${latest}"
+                    }
                 }
             }
         }
@@ -98,7 +91,6 @@ pipeline {
         always {
             sh "docker logout ${ECR_REGISTRY} || true"
             sh "docker image prune -f || true"
-            //sh "docker builder prune -af || true"
             cleanWs()
         }
     }
