@@ -1,7 +1,7 @@
 FROM node:18.19.0-alpine3.19 AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps --verbose
+RUN npm ci --legacy-peer-deps
 COPY . .
 ARG VITE_API_BASE_PATH
 ENV VITE_API_BASE_PATH=$VITE_API_BASE_PATH
