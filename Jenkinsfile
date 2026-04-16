@@ -1,53 +1,91 @@
 pipeline {
     agent { label 'docker-agent' }
 
-    tools {
-        nodejs 'node18'
-    }
-
     environment {
-        NEXUS_REGISTRY = "host.docker.internal:8082"
+        AWS_REGION = "${env.AWS_DEFAULT_REGION}"
+        AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"
+        ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
+        DOCKER_BUILDKIT = '1'
     }
 
     stages {
+        stage('SCA Scan: Snyk') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+                        sh 'snyk auth $SNYK_TOKEN'
+                        
+                        parallel(
+                            "Backend Snyk": { dir('backend') { sh 'snyk test --severity-threshold=high || true' } },
+                            "Frontend Snyk": { dir('frontend') { sh 'snyk test --severity-threshold=high || true' } }
+                        )
+                    }
+                }
+            }
+        }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
                     def scannerHome = tool 'SonarScanner'
                     withSonarQubeEnv('MySonarServer') {
-                        ['backend': 'BackEnd', 'frontend': 'Client'].each { folder, suffix ->
-                            dir(folder) {
-                                sh """
-                                  ${scannerHome}/bin/sonar-scanner \
-                                    -Dsonar.projectKey=ita-social-projects_SpaceToStudy-${suffix} \
-                                    -Dsonar.testExecutionReportPaths= \
-                                    -Dsonar.javascript.node.maxspace=4096
-                                """
-                            }
+                        dir('backend') {
+                            sh "${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.javascript.node.maxspace=768 \
+                                -Dsonar.scanner.skipNodeProvisioning=true \
+                                -Dsonar.testExecutionReportPaths="
+                        }
+                        dir('frontend') {
+                            sh "${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.javascript.node.maxspace=768 \
+                                -Dsonar.scanner.skipNodeProvisioning=true \
+                                -Dsonar.testExecutionReportPaths="
                         }
                     }
                 }
             }
         }
 
-        stage('Build & Push') {
+        stage('Login to ECR') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-auth', usernameVariable: 'NEXUS_USR', passwordVariable: 'NEXUS_PWD')]) {
-                        sh 'echo "${NEXUS_PWD}" | docker login ${NEXUS_REGISTRY} -u "${NEXUS_USR}" --password-stdin'
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+                    }
+                }
+            }
+        }
 
-                        ['backend', 'frontend'].each { app ->
-                            def tag = "${NEXUS_REGISTRY}/${app}:${env.BUILD_NUMBER}"
-                            def latest = "${NEXUS_REGISTRY}/${app}:latest"
-                            
-                            dir(app) {
-                                sh "docker build -t ${tag} -t ${latest} ."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
-                        }
+        stage('Build & Scan & Push') {
+            steps {
+                script {
+                    def backendApp = 'backend'
+                    def backendTag = "${ECR_REGISTRY}/space2study-${backendApp}:${env.BUILD_NUMBER}"
+                    def backendLatest = "${ECR_REGISTRY}/space2study-${backendApp}:latest"
+
+                    dir(backendApp) {
+                        echo "Building Backend..."
+                        sh "docker build -t ${backendTag} -t ${backendLatest} ."
+                        echo "Scanning Backend Image..."
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${backendTag}"
+                        echo "Pushing Backend Image..."
+                        sh "docker push ${backendTag}"
+                        sh "docker push ${backendLatest}"
+                    }
+
+                    def frontendApp = 'frontend'
+                    def frontendTag = "${ECR_REGISTRY}/space2study-${frontendApp}:${env.BUILD_NUMBER}"
+                    def frontendLatest = "${ECR_REGISTRY}/space2study-${frontendApp}:latest"
+
+                    dir(frontendApp) {
+                        echo "Building Frontend..."
+                        sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${frontendTag} -t ${frontendLatest} ."
+                        echo "Scanning Frontend Image..."
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${frontendTag}"
+                        echo "Pushing Frontend Image..."
+                        sh "docker push ${frontendTag}"
+                        sh "docker push ${frontendLatest}"
                     }
                 }
             }
@@ -56,7 +94,7 @@ pipeline {
 
     post {
         always {
-            sh "docker logout ${NEXUS_REGISTRY} || true"
+            sh "docker logout ${ECR_REGISTRY} || true"
             cleanWs()
         }
     }
