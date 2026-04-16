@@ -17,3 +17,10 @@
 **/.github
 LICENSE
 README.md
+.DS_Store
+photo.jpg
+photo2.jpg
+.scannerwork
+.eslintrc.json
+.prettierrc
+test-report.xml

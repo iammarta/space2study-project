@@ -1,0 +1,4 @@
+- hosts: runtime
+  become: true
+  roles:
+  - runtime_k3s

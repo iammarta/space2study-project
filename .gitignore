@@ -4,3 +4,4 @@
 .vagrant/
 node_modules/
 loki-data/
+**/all.yml
