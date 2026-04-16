@@ -1,0 +1,64 @@
+---
+- name: Render monitoring Helm values
+  ansible.builtin.template:
+    src: monitoring-values.yml.j2
+    dest: /home/ubuntu/app/monitoring-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Copy Loki Helm values
+  ansible.builtin.copy:
+    src: loki-values.yml
+    dest: /home/ubuntu/app/loki-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Copy Alloy Helm values
+  ansible.builtin.copy:
+    src: alloy-values.yml
+    dest: /home/ubuntu/app/alloy-values.yml
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+
+- name: Add prometheus-community Helm repo
+  ansible.builtin.command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Add grafana Helm repo
+  ansible.builtin.command: helm repo add grafana https://grafana.github.io/helm-charts
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Update Helm repos
+  ansible.builtin.command: helm repo update
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install kube-prometheus-stack
+  ansible.builtin.shell: |
+    helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+      --namespace space2study \
+      --create-namespace \
+      -f /home/ubuntu/app/monitoring-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install Loki
+  ansible.builtin.shell: |
+    helm upgrade --install loki grafana/loki \
+      --namespace space2study \
+      -f /home/ubuntu/app/loki-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Install Alloy
+  ansible.builtin.shell: |
+    helm upgrade --install alloy grafana/alloy \
+      --namespace space2study \
+      -f /home/ubuntu/app/alloy-values.yml
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml

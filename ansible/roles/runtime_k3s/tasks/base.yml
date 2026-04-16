@@ -1,0 +1,15 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+    - curl
+    - ca-certificates
+    - gnupg
+    - python3-pip
+    state: present
+    update_cache: true
+
+- name: Install AWS CLI via snap
+  community.general.snap:
+    name: aws-cli
+    classic: true
