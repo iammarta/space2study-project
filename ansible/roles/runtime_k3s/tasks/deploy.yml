@@ -1,0 +1,5 @@
+---
+- name: Apply application manifests
+  ansible.builtin.command: kubectl apply -k /home/ubuntu/app/k8s
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml

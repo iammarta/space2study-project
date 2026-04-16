@@ -1,0 +1,33 @@
+---
+- name: Create Kubernetes manifests directory
+  ansible.builtin.file:
+    path: /home/ubuntu/app/k8s
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: "0755"
+
+- name: Copy static Kubernetes app manifests
+  ansible.builtin.copy:
+    src: ../../../k8s/app/
+    dest: /home/ubuntu/app/k8s/
+    owner: ubuntu
+    group: ubuntu
+    mode: preserve
+
+- name: Render templated Kubernetes manifests
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: "0644"
+  loop:
+  - src: backend-configmap.yml.j2
+    dest: /home/ubuntu/app/k8s/backend-configmap.yml
+  - src: backend-deployment.yml.j2
+    dest: /home/ubuntu/app/k8s/backend-deployment.yml
+  - src: frontend-deployment.yml.j2
+    dest: /home/ubuntu/app/k8s/frontend-deployment.yml
+  - src: ingress.yml.j2
+    dest: /home/ubuntu/app/k8s/ingress.yml
