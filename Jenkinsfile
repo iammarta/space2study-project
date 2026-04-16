@@ -6,6 +6,7 @@ pipeline {
         AWS_ACCOUNT_ID = "${env.AWS_ACCOUNT_ID}"
         ECR_REGISTRY = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
         SONAR_SCANNER_OPTS = "-Xmx2048m -XX:ReservedCodeCacheSize=256m"
+        DOCKER_BUILDKIT = '1'
     }
 
     stages {
@@ -59,36 +60,33 @@ pipeline {
         stage('Build & Scan & Push') {
             steps {
                 script {
-                    parallel(
-                        "Backend Pipeline": {
-                            def app = 'backend'
-                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+                    def backendApp = 'backend'
+                    def backendTag = "${ECR_REGISTRY}/space2study-${backendApp}:${env.BUILD_NUMBER}"
+                    def backendLatest = "${ECR_REGISTRY}/space2study-${backendApp}:latest"
 
-                            dir(app) {
-                                sh "docker build -t ${tag} -t ${latest} ."
-                                echo "Scanning Backend Image..."
-                                sh "trivy image --cache-dir /root/.cache/trivy/backend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
-                                echo "Pushing Backend Image..."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
-                        },
-                        "Frontend Pipeline": {
-                            def app = 'frontend'
-                            def tag = "${ECR_REGISTRY}/space2study-${app}:${env.BUILD_NUMBER}"
-                            def latest = "${ECR_REGISTRY}/space2study-${app}:latest"
+                    dir(backendApp) {
+                        echo "Building Backend..."
+                        sh "docker build -t ${backendTag} -t ${backendLatest} ."
+                        echo "Scanning Backend Image..."
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${backendTag}"
+                        echo "Pushing Backend Image..."
+                        sh "docker push ${backendTag}"
+                        sh "docker push ${backendLatest}"
+                    }
 
-                            dir(app) {
-                                sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${tag} -t ${latest} ."
-                                echo "Scanning Frontend Image..."
-                                sh "trivy image --cache-dir /root/.cache/trivy/frontend --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${tag}"
-                                echo "Pushing Frontend Image..."
-                                sh "docker push ${tag}"
-                                sh "docker push ${latest}"
-                            }
-                        }
-                    )
+                    def frontendApp = 'frontend'
+                    def frontendTag = "${ECR_REGISTRY}/space2study-${frontendApp}:${env.BUILD_NUMBER}"
+                    def frontendLatest = "${ECR_REGISTRY}/space2study-${frontendApp}:latest"
+
+                    dir(frontendApp) {
+                        echo "Building Frontend..."
+                        sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${frontendTag} -t ${frontendLatest} ."
+                        echo "Scanning Frontend Image..."
+                        sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${frontendTag}"
+                        echo "Pushing Frontend Image..."
+                        sh "docker push ${frontendTag}"
+                        sh "docker push ${frontendLatest}"
+                    }
                 }
             }
         }
