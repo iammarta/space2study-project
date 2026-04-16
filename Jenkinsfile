@@ -23,7 +23,7 @@ pipeline {
                 }
             }
         }
-    /*
+
         stage('SonarQube Analysis') {
             steps {
                 script {
@@ -45,7 +45,7 @@ pipeline {
                 }
             }
         }
-    */
+
         stage('Login to ECR') {
             steps {
                 script {
@@ -65,7 +65,7 @@ pipeline {
 
                     dir(backendApp) {
                         echo "Building Backend..."
-                        sh "docker build --network=host -t ${backendTag} -t ${backendLatest} ."
+                        sh "docker build -t ${backendTag} -t ${backendLatest} ."
                         echo "Scanning Backend Image..."
                         sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${backendTag}"
                         echo "Pushing Backend Image..."
@@ -79,7 +79,7 @@ pipeline {
 
                     dir(frontendApp) {
                         echo "Building Frontend..."
-                        sh "docker build --network=host --build-arg VITE_API_BASE_PATH=/api -t ${frontendTag} -t ${frontendLatest} ."
+                        sh "docker build --build-arg VITE_API_BASE_PATH=/api -t ${frontendTag} -t ${frontendLatest} ."
                         echo "Scanning Frontend Image..."
                         sh "trivy image --no-progress --severity HIGH,CRITICAL --exit-code 0 --timeout 15m ${frontendTag}"
                         echo "Pushing Frontend Image..."
