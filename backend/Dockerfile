@@ -1,7 +1,7 @@
 FROM node:18.19.0-alpine3.19 AS build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps --verbose --maxsockets 5
+RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm prune --omit=dev
 FROM node:18.19.0-alpine3.19
